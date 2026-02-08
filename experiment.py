@@ -5,7 +5,7 @@ os.environ["JAX_PLATFORM_NAME"] = "cpu"
 import netket as nk
 import optax
 from physics.hamiltonian import get_Hamiltonian
-from models.vit_modular import ARSpinViT_Manual
+from models.vit import ARSpinViT_Manual
 
 def run():
     print(">>> CARGANDO ARQUITECTURA MODULAR (Versión Estable)...")
