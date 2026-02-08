@@ -109,7 +109,7 @@ def run_experiment():
     print(f"Energía Exacta: {E_exact:.6f}")
 
     # --- MODELO LITE (Para evitar overfitting/explosión) ---
-    print(">>> Construyendo modelo 'Lite'...")
+    print(">>> Construyendo modelo...")
     model = ARSpinViT(
         hilbert=hi,
         embedding_d=8,   # Reducido de 16 a 8
@@ -132,10 +132,10 @@ def run_experiment():
 
     print(f"Parámetros del modelo: {vstate.n_parameters}")
 
-    # --- OPTIMIZADOR CON FRENO ---
-    optimizer = nk.optimizer.Sgd(learning_rate=0.01)
     
-    # Diag_shift 0.1 estabiliza la curvatura al principio
+    optimizer = nk.optimizer.Sgd(learning_rate=0.001)
+    
+    
     sr = nk.optimizer.SR(diag_shift=0.1)
 
     gs = nk.driver.VMC(H, optimizer, variational_state=vstate, preconditioner=sr)
