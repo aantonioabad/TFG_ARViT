@@ -24,7 +24,7 @@ def run():
         hilbert=hi,
         embedding_d=8,
         n_heads=2,
-        n_blocks=2
+        n_blocks=2,
         n_ffn_layers=1
     )
 
