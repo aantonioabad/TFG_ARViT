@@ -25,6 +25,7 @@ def run():
         embedding_d=8,
         n_heads=2,
         n_blocks=2
+        n_ffn_layers=1
     )
 
     # 3. Variational State
