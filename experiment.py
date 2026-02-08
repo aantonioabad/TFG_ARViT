@@ -3,85 +3,51 @@ os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 os.environ["JAX_PLATFORM_NAME"] = "cpu"
 
 import netket as nk
-import optax  # Necesario para el clipping
-import jax.numpy as jnp
-
+import optax
 from physics.hamiltonian import get_Hamiltonian
-from models.vit import ARSpinViT
+# Importamos la nueva clase modular
+from models.vit import ARSpinViT_Manual
 
-def run_experiment():
-    print("===========================================")
-    print(">>> INICIANDO AR-ViT (Modo Anti-Explosión)")
-    print("===========================================")
+def run():
+    print(">>> CARGANDO ARQUITECTURA MODULAR...")
     
-    # --- HIPERPARÁMETROS ---
+    # 1. Sistema Físico
     N = 10
-    J = 1.0
-    alpha = 3.0
-    
     hi = nk.hilbert.Spin(s=0.5, N=N)
-    H = get_Hamiltonian(N, J, alpha, hi)
-
-    print(">>> Calculando energía exacta...")
+    H = get_Hamiltonian(N, J=1.0, alpha=3.0, hilbert=hi)
+    
     E_exact = nk.exact.lanczos_ed(H, k=1, compute_eigenvectors=False)[0]
-    print(f"Energía Exacta: {E_exact:.6f}")
+    print(f"Energía Exacta: {E_exact:.5f}")
 
-    # --- MODELO ---
-    print(">>> Construyendo modelo...")
-    model = ARSpinViT(
+   
+    model = ARSpinViT_Manual(
         hilbert=hi,
         embedding_d=8,
         n_heads=2,
-        n_blocks=2, 
-        n_ffn_layers=1 
+        n_blocks=2
     )
-    
+
+    # 3. Variational State
+    # Usamos sampler ARDirectSampler (Exacto para ARNN)
     sampler = nk.sampler.ARDirectSampler(hi)
+    vstate = nk.vqs.MCState(sampler, model, n_samples=1024, seed=42)
 
-    # --- MUESTRAS ---
-    # Mantenemos alto para estabilidad
-    vstate = nk.vqs.MCState(
-        sampler, 
-        model, 
-        n_samples=2048,  
-        n_discard_per_chain=0,
-        seed=42
+    # 4. Optimizador (Adam es mejor para Transformers que SGD)
+    # Clip global norm evita explosiones
+    op = optax.chain(
+        optax.clip_by_global_norm(1.0),
+        optax.adam(learning_rate=0.005)
     )
+    sr = nk.optimizer.SR(diag_shift=0.05) # SR suave
 
-    print(f"Parámetros: {vstate.n_parameters}")
-    
-    # --- [FIX CRÍTICO 2] OPTIMIZADOR CON CLIPPING ---
-    # Usamos Adam (mejor para Transformers) en vez de SGD.
-    # Clip Global Norm: Si el vector de gradiente es muy largo, lo recorta a 1.0
-    optimizer = optax.chain(
-        optax.clip_by_global_norm(1.0),  # <--- Freno de emergencia
-        optax.adam(learning_rate=0.001)  # <--- Adam suele ser más estable que SGD
-    )
-    
-    # --- [FIX CRÍTICO 3] PRECONDICIONADOR SVD ---
-    # Usamos solver='svd'. Es más lento pero matemáticamente indestructible frente a matrices singulares.
-    sr = nk.optimizer.SR(
-        diag_shift=0.1, 
-        solver=nk.optimizer.solver.svd  # <--- SVD evita errores de inversión
-    )
-
-    gs = nk.driver.VMC(H, optimizer, variational_state=vstate, preconditioner=sr)
-
-    print(">>> Entrenando (Con protecciones activadas)...")
+    # 5. Entrenar
+    gs = nk.driver.VMC(H, op, variational_state=vstate, preconditioner=sr)
     log = nk.logging.RuntimeLog()
-    
-    # Entrenamos un poco más para ver si converge
     gs.run(n_iter=300, out=log, show_progress=True)
 
     E_final = log["Energy"].Mean[-1]
-    error = abs((E_final - E_exact) / E_exact)
-    
-    print("\n===========================================")
-    print(">>> RESULTADOS FINALES")
-    print(f"Energía Exacta : {E_exact:.6f}")
-    print(f"Energía VMC    : {E_final:.6f}")
-    print(f"Error Relativo : {error:.2%}")
-    print("===========================================")
+    print(f"\n>>> FINAL: VMC={E_final:.5f} | Exacta={E_exact:.5f}")
+    print(f"Error: {abs((E_final - E_exact)/E_exact):.2%}")
 
 if __name__ == "__main__":
-    run_experiment()
+    run()
