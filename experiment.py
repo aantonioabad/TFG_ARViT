@@ -1,56 +1,45 @@
 import os
-# Configuración crítica para evitar conflictos de memoria con JAX
 os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 os.environ["JAX_PLATFORM_NAME"] = "cpu"
 
 import netket as nk
-import optax
+import optax  # Necesario para el clipping
 import jax.numpy as jnp
 
-# --- IMPORTACIONES DE NUESTROS MÓDULOS ---
 from physics.hamiltonian import get_Hamiltonian
 from models.vit import ARSpinViT
 
 def run_experiment():
     print("===========================================")
-    print(">>> INICIANDO AR-ViT (Estructura Modular)")
+    print(">>> INICIANDO AR-ViT (Modo Anti-Explosión)")
     print("===========================================")
     
-    # --- 1. HIPERPARÁMETROS FÍSICOS ---
-    N = 10          # Número de espines
-    J = 1.0         # Interacción
-    alpha = 3.0     # Alcance de interacción
+    # --- HIPERPARÁMETROS ---
+    N = 10
+    J = 1.0
+    alpha = 3.0
     
-    # Espacio de Hilbert (Espines 1/2)
     hi = nk.hilbert.Spin(s=0.5, N=N)
-    
-    # Obtener Hamiltoniano del módulo physics
     H = get_Hamiltonian(N, J, alpha, hi)
 
-    # Cálculo Exacto (para referencia)
-    print(">>> Calculando energía exacta (Lanczos)...")
+    print(">>> Calculando energía exacta...")
     E_exact = nk.exact.lanczos_ed(H, k=1, compute_eigenvectors=False)[0]
     print(f"Energía Exacta: {E_exact:.6f}")
 
-    # --- 2. MODELO (ARQUITECTURA) ---
-    # [MODIFICADO]: Usamos la configuración "Lite" para estabilidad numérica.
-    # ORIGINAL: embedding_d=16, n_heads=4 (Demasiado grande para N=10 con pocos samples)
-    print(">>> Construyendo modelo ARSpinViT Lite...")
+    # --- MODELO ---
+    print(">>> Construyendo modelo...")
     model = ARSpinViT(
         hilbert=hi,
-        embedding_d=8,    # Reducido para evitar overfitting
+        embedding_d=8,
         n_heads=2,
         n_blocks=2, 
         n_ffn_layers=1 
     )
     
-    # Sampler Autoregresivo (Exacto y eficiente)
     sampler = nk.sampler.ARDirectSampler(hi)
 
-    # --- 3. ESTADO VARIACIONAL (VMC) ---
-    # [MODIFICADO]: Aumentamos n_samples para garantizar N_samples > N_params
-    # ORIGINAL: 1024 muestras.
-    # CAMBIO: 2048 muestras.
+    # --- MUESTRAS ---
+    # Mantenemos alto para estabilidad
     vstate = nk.vqs.MCState(
         sampler, 
         model, 
@@ -59,25 +48,31 @@ def run_experiment():
         seed=42
     )
 
-    print(f"Número de parámetros del modelo: {vstate.n_parameters}")
+    print(f"Parámetros: {vstate.n_parameters}")
     
-    # --- 4. OPTIMIZADOR ---
-    # [MODIFICADO]: Learning Rate reducido y Diag Shift aumentado.
-    # ORIGINAL: lr=0.01, diag_shift=0.01 (Causaba NaN/Explosión).
-    # CAMBIO: lr=0.001 (Más lento pero seguro), diag_shift=0.1 (Freno inicial).
-    optimizer = nk.optimizer.Sgd(learning_rate=0.001)
-    sr = nk.optimizer.SR(diag_shift=0.1)
+    # --- [FIX CRÍTICO 2] OPTIMIZADOR CON CLIPPING ---
+    # Usamos Adam (mejor para Transformers) en vez de SGD.
+    # Clip Global Norm: Si el vector de gradiente es muy largo, lo recorta a 1.0
+    optimizer = optax.chain(
+        optax.clip_by_global_norm(1.0),  # <--- Freno de emergencia
+        optax.adam(learning_rate=0.001)  # <--- Adam suele ser más estable que SGD
+    )
+    
+    # --- [FIX CRÍTICO 3] PRECONDICIONADOR SVD ---
+    # Usamos solver='svd'. Es más lento pero matemáticamente indestructible frente a matrices singulares.
+    sr = nk.optimizer.SR(
+        diag_shift=0.1, 
+        solver=nk.optimizer.solver.svd  # <--- SVD evita errores de inversión
+    )
 
-    # Driver de entrenamiento
     gs = nk.driver.VMC(H, optimizer, variational_state=vstate, preconditioner=sr)
 
-    # --- 5. ENTRENAMIENTO ---
-    print(">>> Entrenando (300 iteraciones)...")
+    print(">>> Entrenando (Con protecciones activadas)...")
     log = nk.logging.RuntimeLog()
     
+    # Entrenamos un poco más para ver si converge
     gs.run(n_iter=300, out=log, show_progress=True)
 
-    # Resultados Finales
     E_final = log["Energy"].Mean[-1]
     error = abs((E_final - E_exact) / E_exact)
     
