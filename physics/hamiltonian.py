@@ -1,89 +1,37 @@
-from typing import Optional, Tuple
-
 import netket as nk
-import numpy.typing as npt
-from netket.operator.spin import sigmax, sigmaz
+from netket.operator import LocalOperator
+from netket.hilbert import AbstractHilbert
 
-
-def get_Hamiltonian(
-    N: int,
-    J: float,
-    alpha: float,
-    trans_field: float = -1.0,
-    sym_field: Optional[bool] = False,
-    epsilon: Optional[float] = 1e-3,
-    return_norm: Optional[float] = False,
-) -> Tuple[npt.ArrayLike, float]:
-    """Build the Hamiltonian of the system.
-
-    Args:
-        N: The number of spins in the chain.
-        J: The bare spin-spin interaction strength.
-        alpha: The exponent of the power-law governing the decay of the
-            interaction strength.
-        trans_field: The transverse component of an external field.
-        sym_field: The longitudinal component of an external field.
-            It lifts the degeneracy in the ordered phase breaking the symmetry.
-        epsilon: The relative strength of the longitudinal component respect
-            to the interaction strength.
-        return_norm: Flag that allows the function to return the value of the
-            normalization constant.
-
-    Returns:
-        Either H or the tuple (H, N_norm) depending on whether return_norm
-        is True.
-            H: Array containing the Hamiltonian matrix.
-            N_norm: Float value of the normalization constant.
+def get_Hamiltonian(N: int, J: float, alpha: float, hilbert: AbstractHilbert) -> LocalOperator:
     """
-
-    hi = nk.hilbert.Spin(s=1 / 2, N=N)
-    H = sum(trans_field * sigmax(hi, i) for i in range(N))
-
-    N_norm = 1
-    for i in range(1, N):
-        dist = min(abs(i), N - abs(i))
-        N_norm += 1 / dist**alpha
-
-    J = J / N_norm
-
-    for i in range(0, N):
-        for j in range(i, N):
-            dist = min(abs(i - j), N - abs(i - j))
-            cn = 1.0
-            if dist == 0:
-                dist = 1
-                cn = 2.0
-            H += J / cn * sigmaz(hi, i) * sigmaz(hi, j) / (dist**alpha)
-
-    if sym_field:
-        H += J * epsilon * sum(sigmaz(hi, i) for i in range(N))
-
-    H /= N
-    if return_norm:
-        return (H, N_norm)
-    else:
-        return H
-
-
-def get_eigvals(
-    Hamiltonian: npt.ArrayLike, order: int = 1, eigenvecs: bool = False
-) -> Tuple[npt.ArrayLike, npt.ArrayLike]:
-    """Partially diagonalize a given matrix, namely the Hamiltonian.
-
+    Construye el Hamiltoniano de Ising de largo alcance.
+    
     Args:
-        Hamiltonian: Hamiltonian or general matrix to diagonalize.
-        order: The number of lowest energy levels that we want to obtain.
-        eigenvecs: If set to True, returns also an Array with the eigenvectors
-            of the corresponding eigenlevels obtained.
-
-    Returns:
-        Either w or the tuple (w, v) depending on whether compute_eigenvectors
-        is True.
-            w: Array containing the lowest 'order' eigenvalues.
-            v: Array containing the eigenvectors as columns, such that
-                'v[:, i]' corresponds to w[i].
+        N: Número de espines.
+        J: Intensidad de interacción.
+        alpha: Decaimiento de la interacción.
+        hilbert: El espacio de Hilbert (objeto Spin de NetKet).
     """
+    
+    # 1. Definimos la intensidad del campo transversal (h_x)
+    # En el modelo estándar suele ser 1.0. Si quieres cambiarlo, pon h_x = lo que sea.
+    h_x = 1.0
+    
+    # 2. Término de campo transversal: - h_x * sum(sigma_x)
+    # [FIX]: Usamos 'hilbert' (el argumento) para crear los operadores
+    sx_list = [nk.operator.spin.sigmax(hilbert, i) for i in range(N)]
+    term_field = -h_x * sum(sx_list)
+    
+    # 3. Término de interacción: + J * sum(sigma_z_i * sigma_z_j / dist^alpha)
+    def interaction_term(i, j):
+        # Distancia con condiciones de contorno periódicas
+        d = min(abs(i - j), N - abs(i - j))
+        # Operador de interacción zz
+        op_zz = nk.operator.spin.sigmaz(hilbert, i) @ nk.operator.spin.sigmaz(hilbert, j)
+        return (J / d**alpha) * op_zz
 
-    return nk.exact.lanczos_ed(
-        Hamiltonian, k=order, compute_eigenvectors=eigenvecs
-    )
+    # Sumamos todos los pares (i < j)
+    term_interaction = sum([interaction_term(i, j) for i in range(N) for j in range(i + 1, N)])
+    
+    # Hamiltoniano Total
+    return term_field + term_interaction
