@@ -184,6 +184,8 @@ class ARSpinViTBase(nk.models.AbstractARNN):
                 embedding_d=self.embedding_d
             )(x)
 
+        x = nn.LayerNorm()(x)
+        
         # 3. Cabezal de Salida
         x = nn.Dense(
             self.machine_pow, 

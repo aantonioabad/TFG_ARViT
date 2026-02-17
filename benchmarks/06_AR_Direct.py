@@ -41,7 +41,7 @@ def run_ar_direct():
     vstate = nk.vqs.MCState(sampler, model, n_samples=2048, seed=42)
 
     # 5. Optimizador
-    optimizer = optax.adam(learning_rate=0.01)
+    optimizer = optax.adam(learning_rate=0.001)
     gs = nk.driver.VMC_SR(H, optimizer, variational_state=vstate, diag_shift=0.1)
 
     # 6. Ejecutar
