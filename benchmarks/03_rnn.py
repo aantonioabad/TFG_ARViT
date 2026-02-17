@@ -40,6 +40,7 @@ def run_rnn():
     # - layers=2: Profundidad de la red.
     # - features=8: Tamaño de la "memoria" interna (equivalente a embedding_d).
     model = nk.experimental.models.LSTMNet(
+        hilbert=hi,
         layers=2,
         features=8,
         param_dtype=float
