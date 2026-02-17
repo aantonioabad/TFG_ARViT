@@ -150,7 +150,7 @@ class ARSpinViTBase(nk.models.AbstractARNN):
     n_blocks: int
     n_ffn_layers: int
     machine_pow: int = 2
-
+    
     @nn.compact
     def conditionals(self, inputs: jt.ArrayLike) -> jt.ArrayLike:
         """
@@ -160,10 +160,23 @@ class ARSpinViTBase(nk.models.AbstractARNN):
         x = inputs.astype(REAL_DTYPE)
         x = x[..., None] # (Batch, N, 1)
 
-        # 1. Embedding Inicial
+        # 1. Embedding Inicial (Valor del espín)
         x = nn.Dense(features=self.embedding_d, param_dtype=REAL_DTYPE, name="embed")(x)
 
-        # 2. Bloques Transformer (Usando la clase modular)
+        # --- NUEVO: POSITIONAL EMBEDDING (AÑADIR ESTO) ---
+        # Esto le dice a la red: "Tú eres el espín 0, tú el 1..."
+        batch_size, N, _ = x.shape
+        # Creamos una matriz de parámetros aprendibles (N, embedding_d)
+        pos_emb = self.param('pos_embedding', 
+                             nn.initializers.normal(stddev=0.02), 
+                             (N, self.embedding_d),
+                             REAL_DTYPE)
+        
+        # Se suma al input (Broadcasting automático sobre el Batch)
+        x = x + pos_emb
+        # -------------------------------------------------
+
+        # 2. Bloques Transformer
         for _ in range(self.n_blocks):
             x = TransformerBlock(
                 n_heads=self.n_heads,
@@ -171,8 +184,7 @@ class ARSpinViTBase(nk.models.AbstractARNN):
                 embedding_d=self.embedding_d
             )(x)
 
-        # 3. Cabezal de Salida (Output Head)
-        # Inicialización suave para estabilidad (opcional pero recomendada)
+        # 3. Cabezal de Salida
         x = nn.Dense(
             self.machine_pow, 
             param_dtype=REAL_DTYPE,
@@ -181,6 +193,7 @@ class ARSpinViTBase(nk.models.AbstractARNN):
         )(x)
         
         return nk.nn.activation.log_cosh(x)
+       
 
 
 # --- 4. VERSIÓN 1: ESTÁNDAR (Call implícito de NetKet) ---
