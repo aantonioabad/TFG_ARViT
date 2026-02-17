@@ -8,7 +8,7 @@ parent_dir = os.path.dirname(current_dir)
 sys.path.append(parent_dir)
 
 os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
-os.environ["JAX_PLATFORM_NAME"] = "cpu" # O "gpu" 
+#os.environ["JAX_PLATFORM_NAME"] = "cpu" # O "gpu" 
 
 
 import netket as nk
