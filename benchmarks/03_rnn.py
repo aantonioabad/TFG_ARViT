@@ -10,7 +10,7 @@ sys.path.append(parent_dir)
 
 # Configuración de JAX para estabilidad
 os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
-os.environ["JAX_PLATFORM_NAME"] = "cpu"
+#os.environ["JAX_PLATFORM_NAME"] = "cpu"
 
 
 import netket as nk
