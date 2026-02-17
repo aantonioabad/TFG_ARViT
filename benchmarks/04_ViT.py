@@ -1,15 +1,13 @@
 import os
 import sys
 
-# --- 1. HEADER (Para encontrar las carpetas) ---
+#  HEADER
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 sys.path.append(parent_dir)
 
 os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
-#os.environ["JAX_PLATFORM_NAME"] = "cpu"
 
-# --- 2. IMPORTS ---
 import netket as nk
 import optax
 import time
@@ -43,7 +41,7 @@ def run_vit_benchmark():
         n_heads=2,
         n_blocks=2,
         n_ffn_layers=1,
-        final_architecture=[8, 4], 
+        final_architecture=(8, 4), 
         is_complex=False
     )
 
