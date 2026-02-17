@@ -38,8 +38,7 @@ class MultiLayerPerceptron(nn.Module):
                     param_dtype=REAL_DTYPE,
                 )(x)
             )
-            # Aplicar activación (excepto quizás en la última capa si se desea lineal, 
-            # pero aquí seguimos el patrón estándar de bloque MLP interno)
+            
             x = self.activation_function(x)
         return x
 
@@ -84,7 +83,7 @@ class CausalSelfAttention(nn.Module):
         mask = mask[None, None, :, :] # Expandir dims
         
         # Aplicar máscara (-inf donde no se debe mirar)
-        dist = jnp.where(mask > 0, dist, -1e9)
+        dist = jnp.where(mask > 0, dist, -jnp.inf)
         
         # Softmax
         attn = nn.softmax(dist, axis=-1)
@@ -119,21 +118,15 @@ class TransformerBlock(nn.Module):
             n_heads=self.n_heads, 
             head_size=head_size
         )(x_norm1)
-        # Proyección de salida de atención + Residual
+        
         x = x + nn.Dense(self.embedding_d, param_dtype=REAL_DTYPE)(attn_out)
 
         # --- Sub-bloque 2: MLP (Feed Forward) ---
-        # Usamos la clase MultiLayerPerceptron que definimos arriba
-        # Estructura típica: Expandir (x2 o x4) -> Gelu -> Contraer
+        
         mlp_widths = [self.embedding_d * 2] * self.n_ffn_layers + [self.embedding_d]
         
-        # Nota: El MLP interno suele tener su propia normalización o no, 
-        # pero el bloque Transformer estándar aplica Norm antes del MLP.
         x_norm2 = nn.LayerNorm(param_dtype=REAL_DTYPE)(x)
         
-        # Creamos el MLP. Ojo: La última capa del MLP debe volver a embedding_d.
-        # Aquí simplificamos usando Dense directamente si n_ffn_layers=1 es simple
-        # o usando la clase MLP para más generalidad.
         
         # Implementación manual del MLP típico de Transformer para control exacto:
         y = nn.Dense(self.embedding_d * 2, param_dtype=REAL_DTYPE)(x_norm2)
@@ -216,6 +209,7 @@ class ARSpinViT_Manual(ARSpinViTBase):
         ids = (inputs + 1) / 2
         ids = ids.astype(jnp.int32)
         ids = ids[..., None]
+        # ids= (inputs+1)//2
         
         # Gather
         selected_logs = jnp.take_along_axis(log_conditionals, ids, axis=-1)

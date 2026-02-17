@@ -1,10 +1,19 @@
-import os
-os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
-os.environ["JAX_PLATFORM_NAME"] = "cpu"
+import sys
+current_dir = os.path.dirname(os.path.abspath(__file__))
 
+# Obtiene la ruta del padre (ej: .../TFG_ARViT)
+parent_dir = os.path.dirname(current_dir)
+# Añade el padre al sistema de búsqueda de Python
+sys.path.append(parent_dir)
+
+os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
+os.environ["JAX_PLATFORM_NAME"] = "cpu" # O "gpu" 
+
+
+from physics.hamiltonian import get_Hamiltonian
+import os
 import netket as nk
 import optax
-from physics.hamiltonian import get_Hamiltonian
 from models.vit import ARSpinViT_Manual
 
 def run():
@@ -41,9 +50,7 @@ def run():
         optax.adam(learning_rate=0.001)
     )
 
-    # 5. Driver VMC_SR (Modo Estable)
-    # CAMBIO 3: Usamos VMC_SR en vez de VMC estándar.
-    # Esto gestiona mejor la matriz S cuando hay pocos samples.
+    
     gs = nk.driver.VMC_SR(H, op, variational_state=vstate, diag_shift=0.1)
     
     log = nk.logging.RuntimeLog()
