@@ -24,7 +24,13 @@ def run_ar_direct():
     H = get_Hamiltonian(N, J=1.0, alpha=3.0, hilbert=hi)
 
     # 2. Modelo (El mismo Autoregresivo)
-    model = ARSpinViT_Manual(hilbert=hi, embedding_dim=8, n_blocks=2)
+    model = ARSpinViT_Manual(
+        hilbert=hi, 
+        embedding_d=8,     
+        n_blocks=2, 
+        n_heads=2,         
+        n_ffn_layers=1    
+    )
 
     # 3. Sampler
     # ARDirectSampler explota la propiedad condicional P(s_i | s_<i)

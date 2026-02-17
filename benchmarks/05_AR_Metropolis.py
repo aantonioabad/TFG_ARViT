@@ -24,7 +24,13 @@ def run_ar_metropolis():
 
     # 2. Modelo (El Autoregresivo)
     # Nota: En NetKet, para usar ARNN como modelo normal, lo envolvemos
-    model = ARSpinViT_Manual(hilbert=hi, embedding_dim=8, n_blocks=2)
+    model = ARSpinViT_Manual(
+        hilbert=hi, 
+        embedding_d=8,   
+        n_blocks=2, 
+        n_heads=2,          
+        n_ffn_layers=1     
+    )
 
     # 3. Sampler (EL LENTO)
     # Usamos MetropolisLocal. Esto ignora la capacidad AR del modelo.
