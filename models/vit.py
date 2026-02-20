@@ -188,7 +188,8 @@ class ARSpinViTBase(nk.models.AbstractARNN):
         
         # 3. Cabezal de Salida
         x = nn.Dense(
-            self.machine_pow, 
+            #self.machine_pow,
+            features=2, 
             param_dtype=REAL_DTYPE,
             kernel_init=nn.initializers.normal(stddev=0.01),
             name="out"
