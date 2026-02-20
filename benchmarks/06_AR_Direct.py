@@ -27,7 +27,6 @@ def run_ar_direct():
         hilbert=hi,
         layers=3,
         features=64,
-        dtype=float
     )
 
     # 3. Sampler
