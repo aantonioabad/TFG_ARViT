@@ -205,7 +205,7 @@ class ARSpinViTBase(nk.models.AbstractARNN):
 class ARSpinViT_Standard(ARSpinViTBase):
     """
     Versión estándar que confía en la implementación de __call__ de AbstractARNN.
-    Úsala si NetKet y JAX se llevan bien en tu entorno.
+    
     """
     pass
 
@@ -216,6 +216,7 @@ class ARSpinViT_Manual(ARSpinViTBase):
     """
     Versión robusta con __call__ implementado manualmente.
     Soluciona el error 'TypeError: NoneType' en ciertas versiones de JAX/NetKet.
+    """
     """
     def __call__(self, inputs: jt.ArrayLike) -> jt.ArrayLike:
         # 1. Obtener condicionales (Batch, N, 2)
@@ -233,3 +234,20 @@ class ARSpinViT_Manual(ARSpinViTBase):
         
         # 3. Sumar log-probs sobre todos los sitios (Batch,)
         return jnp.sum(selected_logs.reshape(inputs.shape), axis=-1)
+        """
+    @nn.compact
+    def __call__(self, inputs: jt.ArrayLike) -> jt.ArrayLike:
+        import jax.numpy as jnp
+        
+        # 1. Obtenemos las log-amplitudes correctas llamando a tu nuevo conditionals
+        log_conds = self.conditionals(inputs) # Forma: (Batch, N, 2)
+        
+        # 2. Convertimos los espines reales [-1, 1] a índices de array [0, 1]
+        indices = ((inputs + 1) / 2).astype(jnp.int32)
+        
+        # 3. Escogemos la probabilidad exacta que corresponde al espín que tenemos
+        log_psi_n = jnp.take_along_axis(log_conds, jnp.expand_dims(indices, -1), axis=-1)
+        log_psi_n = jnp.squeeze(log_psi_n, axis=-1) # Forma: (Batch, N)
+        
+        # 4. Regla de la cadena: P(total) = P(1)*P(2|1)... -> En logaritmos es una SUMA
+        return jnp.sum(log_psi_n, axis=-1)
