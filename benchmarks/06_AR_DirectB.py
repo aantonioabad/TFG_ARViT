@@ -10,7 +10,7 @@ import netket as nk
 import optax
 import time
 from physics.hamiltonian import get_Hamiltonian
-from models.vit import ARSpinViT_Causal
+from models.vitB import ARSpinViT_Causal
 
 def run_ar_direct():
     print(">>> BENCHMARK 06: MI ViT CAUSAL + SAMPLEO DIRECTO")
