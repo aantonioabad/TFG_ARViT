@@ -82,20 +82,23 @@ class ARSpinViT_Causal(nk.models.AbstractARNN):
 
         x = nn.LayerNorm()(x)
 
-        # --- 5. CABEZAL DE SALIDA ---
         x = nn.Dense(
             features=2,
             kernel_init=nn.initializers.normal(stddev=0.01),
             name="out"
         )(x)
         
-        return x
+        # ---> EL CAMBIO CRÍTICO <---
+        # Convertimos la salida a log-amplitud cuántica normalizada AQUÍ
+        return 0.5 * jax.nn.log_softmax(x, axis=-1)
 
     def __call__(self, inputs: jt.ArrayLike) -> jt.ArrayLike:
-        logits = self.conditionals(inputs)
-        log_probs = jax.nn.log_softmax(logits, axis=-1)
+        # 1. Llamamos a conditionals (que ahora ya nos da la matemática perfecta)
+        log_psi_cond = self.conditionals(inputs)
         
+        # 2. Seleccionamos la amplitud que corresponde al espín real
         ids = ((inputs + 1) / 2).astype(jnp.int32)[..., None]
-        selected_logs = jnp.take_along_axis(log_probs, ids, axis=-1).squeeze(-1)
+        selected_logs = jnp.take_along_axis(log_psi_cond, ids, axis=-1).squeeze(-1)
         
-        return 0.5 * jnp.sum(selected_logs, axis=-1)
+        # 3. Sumamos (Regla de la cadena)
+        return jnp.sum(selected_logs, axis=-1)
