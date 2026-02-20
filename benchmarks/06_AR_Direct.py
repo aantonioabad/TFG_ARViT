@@ -47,7 +47,7 @@ def run_ar_direct():
     # 6. Ejecutar
     start_time = time.time()
     log = nk.logging.JsonLog("resultado_benchmark_06", save_params=False)
-    gs.run(n_iter=300, out=log, show_progress=True)
+    gs.run(n_iter=1500, out=log, show_progress=True)
     end_time = time.time()
     
     print(f"\nResultados AR + Direct Sampling:")
