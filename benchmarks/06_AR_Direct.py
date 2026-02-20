@@ -14,8 +14,7 @@ from physics.hamiltonian import get_Hamiltonian
 from models.vit import ARSpinViT_Manual
 
 def run_ar_direct():
-    print(">>> BENCHMARK 06: ARNN SAMPLEO DIRECTO (El Final)")
-    print(">>> Objetivo: Autocorrelación CERO y máxima velocidad.")
+    print(">>> BENCHMARK 06: ARNN SAMPLEO DIRECTO ")
     print("-----------------------------------------------------")
     
     # 1. Sistema
@@ -23,7 +22,7 @@ def run_ar_direct():
     hi = nk.hilbert.Spin(s=0.5, N=N)
     H = get_Hamiltonian(N, J=1.0, alpha=3.0, hilbert=hi)
 
-    # 2. Modelo (El mismo Autoregresivo)
+    # 2. Modelo 
     model = ARSpinViT_Manual(
         hilbert=hi, 
         embedding_d=8,     
