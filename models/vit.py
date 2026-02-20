@@ -194,7 +194,8 @@ class ARSpinViTBase(nk.models.AbstractARNN):
             name="out"
         )(x)
         
-        return nk.nn.activation.log_cosh(x)
+        #return nk.nn.activation.log_cosh(x)
+        return 0.5 * jax.nn.log_softmax(x, axis=-1)
        
 
 
