@@ -36,7 +36,7 @@ def run_ar_direct():
     gs = nk.driver.VMC_SR(H, optimizer, variational_state=vstate, diag_shift=0.1)
 
     start_time = time.time()
-    log = nk.logging.JsonLog("resultado_benchmark_06", save_params=False)
+    log = nk.logging.JsonLog("resultado_benchmark_06B", save_params=False)
     gs.run(n_iter=1500, out=log, show_progress=True)
     end_time = time.time()
     
