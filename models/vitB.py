@@ -91,7 +91,8 @@ class ARSpinViT_Causal(nk.models.AbstractARNN):
         logits = nn.Dense(
             features=2,
             name="final_dense",
-            kernel_init=nn.initializers.xavier_uniform()
+            kernel_init=nn.initializers.xavier_uniform(),
+            param_dtype=jnp.float64
         )(x)
         
         return logits
