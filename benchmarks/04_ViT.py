@@ -17,11 +17,11 @@ from physics.hamiltonian import get_Hamiltonian
 from models.vit_standard import BatchedSpinViT
 
 def run_vit_benchmark():
-    print(">>> BENCHMARK 04: ViT ESTÁNDAR (Paper Reference)")
+    print(">>> BENCHMARK 04: ViT ESTÁNDAR")
     print(">>> Método: Ansatz No-Autoregresivo + Metropolis Sampling")
     print("---------------------------------------------------------")
     
-    # 1. Sistema Físico (Tu Hamiltoniano de largo alcance)
+    # 1. Sistema Físico
     N = 10
     hi = nk.hilbert.Spin(s=0.5, N=N)
     H = get_Hamiltonian(N, J=1.0, alpha=3.0, hilbert=hi)

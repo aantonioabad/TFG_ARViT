@@ -22,7 +22,7 @@ def run_ar_direct():
     hi = nk.hilbert.Spin(s=0.5, N=N)
     H = get_Hamiltonian(N, J=1.0, alpha=3.0, hilbert=hi)
 
-    # 2. Modelo (El Oficial de NetKet, a prueba de bombas)
+    # 2. Modelo 
     model = nk.models.ARNNDense(
         hilbert=hi,
         layers=2,

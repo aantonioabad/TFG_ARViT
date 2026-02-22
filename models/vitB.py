@@ -33,7 +33,7 @@ class CausalTransformerBlock(nn.Module):
         x = nn.LayerNorm(param_dtype=jnp.float64)(x)
         return x
 
-# --- 2. EL MODELO ViT AUTOREGRESIVO PERFECTO ---
+# --- 2. EL MODELO ViT AUTOREGRESIVO ---
 
 class ARSpinViT_Causal(nk.models.AbstractARNN):
     embedding_d: int
@@ -45,7 +45,7 @@ class ARSpinViT_Causal(nk.models.AbstractARNN):
     def conditionals(self, inputs: jt.ArrayLike) -> jt.ArrayLike:
         batch_size, N = inputs.shape
 
-        # SHIFT: Para no ver el futuro
+        
         zeros = jnp.zeros((batch_size, 1), dtype=inputs.dtype)
         x = jnp.concatenate([zeros, inputs[:, :-1]], axis=1)
         x = x.astype(jnp.float64)[..., None] 
@@ -72,7 +72,7 @@ class ARSpinViT_Causal(nk.models.AbstractARNN):
 
         x = nn.LayerNorm(param_dtype=jnp.float64)(x)
 
-        # CABEZAL DE SALIDA (Con inicialización suave para evitar colapso)
+        # CABEZAL DE SALIDA 
         logits = nn.Dense(
             features=2, 
             name="final_dense",
@@ -86,7 +86,7 @@ class ARSpinViT_Causal(nk.models.AbstractARNN):
 
     @nn.compact
     def __call__(self, inputs: jt.ArrayLike) -> jt.ArrayLike:
-        # ¡EL CORTAFUEGOS! Esto evita que NetKet lance el error de NoneType
+        
         
         # 1. Calculamos todas las log-amplitudes
         log_psi_cond = self.conditionals(inputs)

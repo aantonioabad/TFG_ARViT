@@ -1,13 +1,13 @@
 import sys
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
-# Obtiene la ruta del padre (ej: .../TFG_ARViT)
+
 parent_dir = os.path.dirname(current_dir)
-# Añade el padre al sistema de búsqueda de Python
+
 sys.path.append(parent_dir)
 
 os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
-os.environ["JAX_PLATFORM_NAME"] = "cpu" # O "gpu" 
+
 
 
 from physics.hamiltonian import get_Hamiltonian
@@ -17,7 +17,7 @@ import optax
 from models.vit import ARSpinViT_Manual
 
 def run():
-    print(">>> CARGANDO ARQUITECTURA MODULAR (Versión Estable)...")
+    print(">>> CARGANDO ARQUITECTURA...")
     
     # 1. Sistema Físico
     N = 10
@@ -39,12 +39,12 @@ def run():
     # 3. Variational State
     sampler = nk.sampler.ARDirectSampler(hi)
     
-    # CAMBIO 1: Aumentamos muestras (2048 > 1186 parámetros)
+    
     vstate = nk.vqs.MCState(sampler, model, n_samples=2048, seed=42)
     print(f"Parámetros: {vstate.n_parameters} | Muestras: {vstate.n_samples}")
 
     # 4. Optimizador
-    # CAMBIO 2: Bajamos el learning rate a 0.001 para evitar saltos gigantes
+    
     op = optax.chain(
         optax.clip_by_global_norm(1.0),
         optax.adam(learning_rate=0.001)
@@ -59,7 +59,7 @@ def run():
     E_final = log["Energy"].Mean[-1]
     print(f"\n>>> FINAL: VMC={E_final:.5f} | Exacta={E_exact:.5f}")
     
-    # Calculamos error relativo
+   
     err = abs((E_final - E_exact)/E_exact)
     print(f"Error: {err:.2%}")
 

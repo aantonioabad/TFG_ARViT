@@ -17,7 +17,7 @@ import time
 from physics.hamiltonian import get_Hamiltonian
 
 def run_mean_field():
-    print(">>> BENCHMARK 02: MEAN-FIELD (Ansatz Simple / Sin Correlaciones)")
+    print(">>> BENCHMARK 02: MEAN-FIELD (Ansatz Simple)")
     print("----------------------------------------------------------------")
     
     # 1. Sistema
@@ -33,13 +33,10 @@ def run_mean_field():
         E_exact = None
 
     # 2. El Modelo: RBM con alpha=0
-    # alpha=0 significa "0 neuronas ocultas". 
-    # Esto fuerza a la red a aprender solo el comportamiento individual de cada espín,
-    # ignorando las correlaciones entre ellos. Es exactamente la fórmula del producto.
     model = nk.models.RBM(alpha=0, param_dtype=float)
 
     # 3. Sampler y Variational State
-    # Usamos Metropolis porque este modelo NO es autoregresivo por defecto
+    
     sampler = nk.sampler.MetropolisLocal(hi)
     vstate = nk.vqs.MCState(sampler, model, n_samples=2048, seed=42)
 
@@ -69,9 +66,8 @@ def run_mean_field():
     
     # Explicación del resultado para ti:
     if E_exact and abs(E_final - E_exact) > 0.5:
-        print("\n[NOTA]: ¿Ves que el error es alto? Es normal.")
         print("El Mean-Field no captura el entrelazamiento, así que nunca llegará a la energía exacta.")
-        print("Esta es la 'base' que tu Transformer debe superar.")
+        print("Esta es la 'base' que el Transformer debe superar.")
 
 if __name__ == "__main__":
     run_mean_field()

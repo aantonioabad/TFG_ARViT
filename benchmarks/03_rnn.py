@@ -3,14 +3,14 @@ import sys
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
-# Obtiene la ruta del directorio padre (.../TFG_ARViT)
+
 parent_dir = os.path.dirname(current_dir)
-# Añade el padre al sistema para poder importar 'physics'
+
 sys.path.append(parent_dir)
 
 # Configuración de JAX para estabilidad
 os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
-#os.environ["JAX_PLATFORM_NAME"] = "cpu"
+
 
 
 import netket as nk
@@ -23,7 +23,6 @@ def run_rnn():
     print("---------------------------------------------------------")
     
     # --- 3. SISTEMA FÍSICO ---
-    # Usamos exactamente el mismo sistema que en tu Transformer
     N = 10
     hi = nk.hilbert.Spin(s=0.5, N=N)
     H = get_Hamiltonian(N, J=1.0, alpha=3.0, hilbert=hi)
@@ -35,10 +34,8 @@ def run_rnn():
     except:
         E_exact = None
 
-    # --- 4. EL MODELO (Rival) ---
+    # --- 4. EL MODELO  ---
     # Usamos una LSTM (Long Short-Term Memory)..
-    # - layers=2: Profundidad de la red.
-    # - features=8: Tamaño de la "memoria" interna (equivalente a embedding_d).
     model = nk.experimental.models.LSTMNet(
         hilbert=hi,
         layers=2,
@@ -47,19 +44,17 @@ def run_rnn():
     )
 
     # --- 5. EL SAMPLER ---
-    # Las RNNs son autoregresivas por naturaleza (leen 1->2->3...).
-    # Por tanto, podemos usar Sampleo Directo (sin autocorrelación).
+    
     sampler = nk.sampler.ARDirectSampler(hi)
 
     # --- 6. ESTADO VARIACIONAL ---
-    # n_samples=2048: Igual que en tu experimento final.
+    
     vstate = nk.vqs.MCState(sampler, model, n_samples=2048, seed=42)
 
     # --- 7. OPTIMIZADOR ---
-    # Usamos Adam, que suele funcionar mejor que SGD para redes recurrentes.
+    
     optimizer = optax.adam(learning_rate=0.01)
     
-    # Usamos VMC_SR con diag_shift=0.1 (Modo estable)
     gs = nk.driver.VMC_SR(H, optimizer, variational_state=vstate, diag_shift=0.1)
 
     # --- 8. ENTRENAMIENTO ---

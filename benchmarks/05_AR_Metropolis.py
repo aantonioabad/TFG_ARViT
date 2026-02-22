@@ -23,7 +23,7 @@ def run_ar_metropolis():
     H = get_Hamiltonian(N, J=1.0, alpha=3.0, hilbert=hi)
 
     # 2. Modelo (El Autoregresivo)
-    # Nota: En NetKet, para usar ARNN como modelo normal, lo envolvemos
+    
     model = ARSpinViT_Manual(
         hilbert=hi, 
         embedding_d=8,   
@@ -32,8 +32,8 @@ def run_ar_metropolis():
         n_ffn_layers=1     
     )
 
-    # 3. Sampler (EL LENTO)
-    # Usamos MetropolisLocal. Esto ignora la capacidad AR del modelo.
+    # 3. Sampler 
+    
     sampler = nk.sampler.MetropolisLocal(hi)
 
     # 4. Estado Variacional

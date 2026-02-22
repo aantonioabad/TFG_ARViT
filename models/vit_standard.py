@@ -123,13 +123,13 @@ class RealSpinViT(nn.Module):
         for cb in blocks:
             x = cb(x)
 
-        # Sum over tokens (set pooling operation).
+        
         x = x.sum(axis=0)
 
         postprocessor = MultiLayerPerceptron(self.final_architecture)
         x = postprocessor(x)
 
-        # Fix the offset and scale.
+        
         return nn.Dense(1, param_dtype=REAL_DTYPE)(x).squeeze()
 
 
@@ -189,7 +189,7 @@ class SpinViT(nn.Module):
             self.is_complex,
         )
         
-        # Corrección de dimensiones para circulant (asegurar compatibilidad)
+        
         if x.ndim == 1:
             x_in = x[..., None]
         else:
@@ -197,7 +197,7 @@ class SpinViT(nn.Module):
 
         circulant_x = circulant(x_in, self.token_size)
         
-        # Si circulant devuelve 2D, ajustamos a 3D para el vmap
+        
         if circulant_x.ndim == 2:
             circulant_x = circulant_x[..., None]
 

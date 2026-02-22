@@ -2,13 +2,11 @@ import os
 import sys
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
-# Obtiene la ruta del padre (ej: .../TFG_ARViT)
 parent_dir = os.path.dirname(current_dir)
-# Añade el padre al sistema de búsqueda de Python
+
 sys.path.append(parent_dir)
 
-os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
-#os.environ["JAX_PLATFORM_NAME"] = "cpu" # O "gpu" 
+os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false" 
 
 
 import netket as nk
@@ -45,7 +43,6 @@ def run_exact():
     print(f"Energía: {energy_exact:.6f}")
     print(f"Tiempo : {end_time - start_time:.4f} s")
     
-    # Guardar en un fichero para comparar luego
     with open("benchmark_exact.txt", "w") as f:
         f.write(f"{energy_exact}")
 

@@ -14,14 +14,14 @@ class MultiLayerPerceptron(nn.Module):
     Igual al estilo del ejemplo proporcionado.
     """
     layer_widths: Sequence[int]
-    activation_function: Callable = nn.gelu  # Usamos GELU por defecto para ViT
+    activation_function: Callable = nn.gelu  
     kernel_init: Callable = nn.initializers.lecun_normal()
     use_bias: bool = True
 
     @nn.compact
     def __call__(self, x) -> jt.ArrayLike:
         for w in self.layer_widths:
-            # Si la anchura es 1, no usamos LayerNorm para no destruir la señal
+            
             if w == 1:
                 normalizer = lambda x: x
             else:
@@ -71,7 +71,7 @@ class CausalSelfAttention(nn.Module):
         v = v.reshape(shape_heads)
 
         # 2. Atención Scaled Dot-Product
-        # Score: (Batch, Heads, i, j)
+        
         dist = jnp.einsum('bihd,bjhd->bhij', q, k) / jnp.sqrt(self.head_size)
         
         # 3. MÁSCARA CAUSAL (CRÍTICO)
@@ -79,7 +79,7 @@ class CausalSelfAttention(nn.Module):
         mask = jnp.tril(jnp.ones((N, N)))
         mask = mask[None, None, :, :] # Expandir dims
         
-        # Aplicar máscara (-inf donde no se debe mirar)
+        
         dist = jnp.where(mask > 0, dist, -jnp.inf)
         
         # Softmax
@@ -109,7 +109,7 @@ class TransformerBlock(nn.Module):
         
         head_size = self.embedding_d // self.n_heads
 
-        # --- Sub-bloque 1: Atención ---
+        
         x_norm1 = nn.LayerNorm(param_dtype=REAL_DTYPE)(x)
         attn_out = CausalSelfAttention(
             n_heads=self.n_heads, 
@@ -118,14 +118,14 @@ class TransformerBlock(nn.Module):
         
         x = x + nn.Dense(self.embedding_d, param_dtype=REAL_DTYPE)(attn_out)
 
-        # --- Sub-bloque 2: MLP (Feed Forward) ---
+        
         
         mlp_widths = [self.embedding_d * 2] * self.n_ffn_layers + [self.embedding_d]
         
         x_norm2 = nn.LayerNorm(param_dtype=REAL_DTYPE)(x)
         
         
-        # Implementación manual del MLP típico de Transformer para control exacto:
+        
         y = nn.Dense(self.embedding_d * 2, param_dtype=REAL_DTYPE)(x_norm2)
         y = nn.gelu(y)
         y = nn.Dense(self.embedding_d, param_dtype=REAL_DTYPE)(y)
@@ -155,13 +155,12 @@ class ARSpinViTBase(nk.models.AbstractARNN):
         """
         # Preprocesamiento de inputs
         x = inputs.astype(REAL_DTYPE)
-        x = x[..., None] # (Batch, N, 1)
+        x = x[..., None] 
 
         # 1. Embedding Inicial (Valor del espín)
         x = nn.Dense(features=self.embedding_d, param_dtype=REAL_DTYPE, name="embed")(x)
 
-        # --- NUEVO: POSITIONAL EMBEDDING (AÑADIR ESTO) ---
-        # Esto le dice a la red: "Tú eres el espín 0, tú el 1..."
+        
         batch_size, N, _ = x.shape
         # Creamos una matriz de parámetros aprendibles (N, embedding_d)
         pos_emb = self.param('pos_embedding', 
@@ -169,7 +168,7 @@ class ARSpinViTBase(nk.models.AbstractARNN):
                              (N, self.embedding_d),
                              REAL_DTYPE)
         
-        # Se suma al input (Broadcasting automático sobre el Batch)
+       
         x = x + pos_emb
         # -------------------------------------------------
 
@@ -207,7 +206,7 @@ class ARSpinViT_Standard(ARSpinViTBase):
     pass
 
 
-# --- 5. VERSIÓN 2: MANUAL (Tu solución Override) ---
+# --- 5. VERSIÓN 2: MANUAL  ---
 
 class ARSpinViT_Manual(ARSpinViTBase):
     """
@@ -236,15 +235,15 @@ class ARSpinViT_Manual(ARSpinViTBase):
     def __call__(self, inputs: jt.ArrayLike) -> jt.ArrayLike:
         import jax.numpy as jnp
         
-        # 1. Obtenemos las log-amplitudes correctas llamando a tu nuevo conditionals
+        
         log_conds = self.conditionals(inputs) # Forma: (Batch, N, 2)
         
-        # 2. Convertimos los espines reales [-1, 1] a índices de array [0, 1]
+        
         indices = ((inputs + 1) / 2).astype(jnp.int32)
         
-        # 3. Escogemos la probabilidad exacta que corresponde al espín que tenemos
+        
         log_psi_n = jnp.take_along_axis(log_conds, jnp.expand_dims(indices, -1), axis=-1)
         log_psi_n = jnp.squeeze(log_psi_n, axis=-1) # Forma: (Batch, N)
         
-        # 4. Regla de la cadena: P(total) = P(1)*P(2|1)... -> En logaritmos es una SUMA
+        
         return jnp.sum(log_psi_n, axis=-1)
