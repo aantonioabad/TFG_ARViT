@@ -4,7 +4,7 @@ import jax.numpy as jnp
 import jax.typing as jt
 import netket as nk
 
-# --- 2. BLOQUE TRANSFORMER CAUSAL ---
+# --- 1. BLOQUE TRANSFORMER CAUSAL ---
 
 class CausalTransformerBlock(nn.Module):
     n_heads: int
@@ -17,7 +17,7 @@ class CausalTransformerBlock(nn.Module):
             num_heads=self.n_heads,
             qkv_features=self.embedding_d,
             out_features=self.embedding_d,
-            param_dtype=jnp.float64 # Blindaje de precisión
+            param_dtype=jnp.float64
         )(x, x, mask=mask)
         
         x = x + attn_out
@@ -33,7 +33,7 @@ class CausalTransformerBlock(nn.Module):
         x = nn.LayerNorm(param_dtype=jnp.float64)(x)
         return x
 
-# --- 3. EL MODELO ViT AUTOREGRESIVO PERFECTO ---
+# --- 2. EL MODELO ViT AUTOREGRESIVO PERFECTO ---
 
 class ARSpinViT_Causal(nk.models.AbstractARNN):
     embedding_d: int
@@ -45,12 +45,12 @@ class ARSpinViT_Causal(nk.models.AbstractARNN):
     def conditionals(self, inputs: jt.ArrayLike) -> jt.ArrayLike:
         batch_size, N = inputs.shape
 
-        # 1. SHIFT: Para no ver el futuro
+        # SHIFT: Para no ver el futuro
         zeros = jnp.zeros((batch_size, 1), dtype=inputs.dtype)
         x = jnp.concatenate([zeros, inputs[:, :-1]], axis=1)
         x = x.astype(jnp.float64)[..., None] 
 
-        # 2. EMBEDDINGS
+        # EMBEDDINGS
         x = nn.Dense(features=self.embedding_d, name="embed", param_dtype=jnp.float64)(x)
         pos_emb = self.param('pos_embedding', 
                              nn.initializers.normal(stddev=0.01), 
@@ -58,10 +58,10 @@ class ARSpinViT_Causal(nk.models.AbstractARNN):
                              jnp.float64)
         x = x + pos_emb
 
-        # 3. MÁSCARA CAUSAL
+        # MÁSCARA CAUSAL
         mask = nn.make_causal_mask(jnp.empty((batch_size, N)))
 
-        # 4. BLOQUES TRANSFORMER
+        # BLOQUES TRANSFORMER
         for i in range(self.n_blocks):
             x = CausalTransformerBlock(
                 n_heads=self.n_heads,
@@ -72,15 +72,32 @@ class ARSpinViT_Causal(nk.models.AbstractARNN):
 
         x = nn.LayerNorm(param_dtype=jnp.float64)(x)
 
-        # 5. CABEZAL DE SALIDA
+        # CABEZAL DE SALIDA (Con inicialización suave para evitar colapso)
         logits = nn.Dense(
             features=2, 
             name="final_dense",
-            # LA PIEDRA EN EL ESTANQUE: Pequeño ruido (0.01) para arrancar el aprendizaje
             kernel_init=nn.initializers.normal(stddev=0.01), 
             param_dtype=jnp.float64
         )(x)
         
-        # Sincronización perfecta con el Sampler de NetKet
+        # Obtenemos las probabilidades clásicas y pasamos a Amplitudes Cuánticas
         log_probs = jax.nn.log_softmax(logits, axis=-1)
-        return 0.5 * log_probs
+        return jnp.asarray(0.5 * log_probs, dtype=jnp.float64)
+
+    @nn.compact
+    def __call__(self, inputs: jt.ArrayLike) -> jt.ArrayLike:
+        # ¡EL CORTAFUEGOS! Esto evita que NetKet lance el error de NoneType
+        
+        # 1. Calculamos todas las log-amplitudes
+        log_psi_cond = self.conditionals(inputs)
+        
+        # 2. Convertimos los espines [-1, 1] a índices [0, 1]
+        idx = ((inputs + 1) // 2).astype(jnp.int32)
+        idx = jnp.expand_dims(idx, axis=-1)
+        
+        # 3. Seleccionamos la amplitud del espín real
+        selected_log_psi = jnp.take_along_axis(log_psi_cond, idx, axis=-1)
+        selected_log_psi = jnp.squeeze(selected_log_psi, axis=-1)
+        
+        # 4. Regla de la cadena: La log-amplitud total es la suma
+        return jnp.sum(selected_log_psi, axis=-1)
