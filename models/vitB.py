@@ -90,7 +90,7 @@ class ARSpinViT_Causal(nk.models.AbstractARNN):
         
         # EL SECRETO DEL SAMPLER: NetKet necesita log-probabilidades normalizadas aquí
         log_probs = jax.nn.log_softmax(logits, axis=-1)
-        return log_probs
+        return 0.5 * log_probs
 
     @nn.compact
     def __call__(self, inputs: jt.ArrayLike) -> jt.ArrayLike:
