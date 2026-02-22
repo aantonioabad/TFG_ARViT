@@ -54,49 +54,43 @@ class ARSpinViT_Causal(nk.models.AbstractARNN):
 
     @nn.compact
     def conditionals(self, inputs: jt.ArrayLike) -> jt.ArrayLike:
+        # NetKet nos pasa inputs de forma (batch, N)
         batch_size, N = inputs.shape
 
-        # --- 1. EL DESPLAZAMIENTO (SHIFT) ---
+        # 1. SHIFT: El primer paso para ser autoregresivo es no ver el presente
+        # Desplazamos los inputs a la derecha y rellenamos con un cero al inicio
         zeros = jnp.zeros((batch_size, 1), dtype=inputs.dtype)
-        shifted_inputs = jnp.concatenate([zeros, inputs[:, :-1]], axis=1)
-        x = shifted_inputs.astype(jnp.float32)[..., None] 
+        x = jnp.concatenate([zeros, inputs[:, :-1]], axis=1)
+        x = x.astype(jnp.float32)[..., None] 
 
-        # --- 2. EMBEDDINGS ---
+        # 2. EMBEDDINGS Y POSICIÓN
         x = nn.Dense(features=self.embedding_d, name="embed")(x)
         pos_emb = self.param('pos_embedding', 
                              nn.initializers.normal(stddev=0.02), 
                              (N, self.embedding_d))
         x = x + pos_emb
 
-        # --- 3. LA MÁSCARA CAUSAL ---
+        # 3. MÁSCARA CAUSAL ESTRICTA
+        # Esta máscara asegura que el sitio 'i' no vea información de 'j > i'
         mask = nn.make_causal_mask(jnp.empty((batch_size, N)))
 
-        # --- 4. BLOQUES TRANSFORMER ---
-        for _ in range(self.n_blocks):
+        # 4. BLOQUES TRANSFORMER
+        for i in range(self.n_blocks):
             x = CausalTransformerBlock(
                 n_heads=self.n_heads,
                 n_ffn_layers=self.n_ffn_layers,
-                embedding_d=self.embedding_d
+                embedding_d=self.embedding_d,
+                name=f"causal_block_{i}" 
             )(x, mask)
 
         x = nn.LayerNorm()(x)
 
-        x = nn.Dense(
-            features=2,
-            kernel_init=nn.initializers.normal(stddev=0.01),
-            name="out"
-        )(x)
+        # 5. CABEZAL DE SALIDA (LOGITS CRUDOS)
+        # NetKet prefiere recibir los números sin normalizar (logits)
+        # para aplicar su propia lógica de probabilidad interna.
+        logits = nn.Dense(features=2, name="final_dense")(x)
         
-        # Convertimos la salida a log-amplitud cuántica normalizada AQUÍ
-        return 0.5 * jax.nn.log_softmax(x, axis=-1)
+        return logits
 
-    def __call__(self, inputs: jt.ArrayLike) -> jt.ArrayLike:
-        # 1. Llamamos a conditionals (que ahora ya nos da la matemática perfecta)
-        log_psi_cond = self.conditionals(inputs)
-        
-        # 2. Seleccionamos la amplitud que corresponde al espín real
-        ids = ((inputs + 1) / 2).astype(jnp.int32)[..., None]
-        selected_logs = jnp.take_along_axis(log_psi_cond, ids, axis=-1).squeeze(-1)
-        
-        # 3. Sumamos (Regla de la cadena)
-        return jnp.sum(selected_logs, axis=-1)
+    # IMPORTANTE: NO DEFINAS __call__ AQUÍ.
+    # AbstractARNN lo genera automáticamente de forma segura.
