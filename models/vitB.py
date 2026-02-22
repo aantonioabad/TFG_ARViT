@@ -42,11 +42,9 @@ class CausalTransformerBlock(nn.Module):
 
 # --- 3. EL MODELO ViT AUTOREGRESIVO PERFECTO ---
 
+# --- 3. EL MODELO ViT AUTOREGRESIVO PERFECTO ---
+
 class ARSpinViT_Causal(nk.models.AbstractARNN):
-    """
-    Vision Transformer adaptado para sistemas de espines de forma Autoregresiva.
-    Implementa Shift de entrada y Máscara Causal estricta.
-    """
     embedding_d: int
     n_heads: int
     n_blocks: int
@@ -54,24 +52,21 @@ class ARSpinViT_Causal(nk.models.AbstractARNN):
 
     @nn.compact
     def conditionals(self, inputs: jt.ArrayLike) -> jt.ArrayLike:
-        # NetKet nos pasa inputs de forma (batch, N)
         batch_size, N = inputs.shape
 
-        # 1. SHIFT: El primer paso para ser autoregresivo es no ver el presente
-        # Desplazamos los inputs a la derecha y rellenamos con un cero al inicio
+        # 1. SHIFT: Para no ver el futuro
         zeros = jnp.zeros((batch_size, 1), dtype=inputs.dtype)
         x = jnp.concatenate([zeros, inputs[:, :-1]], axis=1)
         x = x.astype(jnp.float32)[..., None] 
 
-        # 2. EMBEDDINGS Y POSICIÓN
+        # 2. EMBEDDINGS
         x = nn.Dense(features=self.embedding_d, name="embed")(x)
         pos_emb = self.param('pos_embedding', 
                              nn.initializers.normal(stddev=0.02), 
                              (N, self.embedding_d))
         x = x + pos_emb
 
-        # 3. MÁSCARA CAUSAL ESTRICTA
-        # Esta máscara asegura que el sitio 'i' no vea información de 'j > i'
+        # 3. MÁSCARA CAUSAL
         mask = nn.make_causal_mask(jnp.empty((batch_size, N)))
 
         # 4. BLOQUES TRANSFORMER
@@ -85,17 +80,26 @@ class ARSpinViT_Causal(nk.models.AbstractARNN):
 
         x = nn.LayerNorm()(x)
 
-        # 5. CABEZAL DE SALIDA (LOGITS CRUDOS)
-        # NetKet prefiere recibir los números sin normalizar (logits)
-        # para aplicar su propia lógica de probabilidad interna.
+        # 5. CABEZAL DE SALIDA
         logits = nn.Dense(
-            features=2,
+            features=2, 
             name="final_dense",
             kernel_init=nn.initializers.xavier_uniform(),
             param_dtype=jnp.float64
         )(x)
         
-        return logits
+        # EL SECRETO DEL SAMPLER: NetKet necesita log-probabilidades normalizadas aquí
+        log_probs = jax.nn.log_softmax(logits, axis=-1)
+        return log_probs
 
-    # IMPORTANTE: NO DEFINAS __call__ AQUÍ.
-    # AbstractARNN lo genera automáticamente de forma segura.
+    @nn.compact
+    def __call__(self, inputs: jt.ArrayLike) -> jt.ArrayLike:
+        # Controlamos nosotros la evaluación para evitar el bug del NoneType
+        log_probs = self.conditionals(inputs)
+        
+        # Seleccionamos la probabilidad del espín real
+        idx = ((inputs + 1) / 2).astype(jnp.int32)[..., None]
+        selected_log_probs = jnp.take_along_axis(log_probs, idx, axis=-1).squeeze(-1)
+        
+        # FÍSICA CUÁNTICA: La amplitud es la mitad de la probabilidad (0.5)
+        return 0.5 * jnp.sum(selected_log_probs, axis=-1)
