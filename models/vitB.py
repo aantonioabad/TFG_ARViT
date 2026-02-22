@@ -88,7 +88,11 @@ class ARSpinViT_Causal(nk.models.AbstractARNN):
         # 5. CABEZAL DE SALIDA (LOGITS CRUDOS)
         # NetKet prefiere recibir los números sin normalizar (logits)
         # para aplicar su propia lógica de probabilidad interna.
-        logits = nn.Dense(features=2, name="final_dense")(x)
+        logits = nn.Dense(
+            features=2,
+            name="final_dense",
+            kernel_init=nn.initializers.xavier_uniform()
+        )(x)
         
         return logits
 
