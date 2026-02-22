@@ -6,10 +6,7 @@ import jax.typing as jt
 import netket as nk
 import numpy as np
 
-# --- 1. UTILIDADES Y CONSTANTES ---
 REAL_DTYPE = jnp.float64
-
-# --- 2. MÓDULOS REUTILIZABLES (Building Blocks) ---
 
 class MultiLayerPerceptron(nn.Module):
     """

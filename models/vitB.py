@@ -20,7 +20,6 @@ class CausalTransformerBlock(nn.Module):
 
     @nn.compact
     def __call__(self, x, mask):
-        # 1. ATENCIÓN CAUSAL
         attn_out = nn.MultiHeadDotProductAttention(
             num_heads=self.n_heads,
             qkv_features=self.embedding_d,
@@ -88,7 +87,6 @@ class ARSpinViT_Causal(nk.models.AbstractARNN):
             name="out"
         )(x)
         
-        # ---> EL CAMBIO CRÍTICO <---
         # Convertimos la salida a log-amplitud cuántica normalizada AQUÍ
         return 0.5 * jax.nn.log_softmax(x, axis=-1)
 
