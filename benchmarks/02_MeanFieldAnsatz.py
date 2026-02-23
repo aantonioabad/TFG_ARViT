@@ -32,7 +32,7 @@ def run_mean_field():
     gs.run(n_iter=1, show_progress=False)
     jax.block_until_ready(vstate.variables)
 
-    print("Iniciando benchmark cronometrado...")
+    print("Cronometrado...")
     start_time = time.time()
     
     log = nk.logging.JsonLog("resultado_benchmark_02", save_params=False)
