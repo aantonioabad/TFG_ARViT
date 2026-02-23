@@ -59,7 +59,7 @@ def run_vit_benchmark():
     start_time = time.time()
     
     log = nk.logging.JsonLog("resultado_benchmark_04", save_params=False)
-    gs.run(n_iter=300, out=log, show_progress=True)
+    gs.run(n_iter=1500, out=log, show_progress=True)
     
     end_time = time.time()
     E_final = log["Energy"].Mean[-1]
