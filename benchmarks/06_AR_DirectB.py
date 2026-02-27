@@ -17,12 +17,18 @@ from physics.hamiltonian import get_Hamiltonian
 from models.vitB import ARSpinViT_Causal
 
 def run_ar_direct_vit():
-    print(">>> BENCHMARK 06B: ViT AR + SAMPLEO DIRECTO")
+    print(">>> BENCHMARK 06B: MI ViT CAUSAL + SAMPLEO DIRECTO")
     print("---------------------------------------------------------")
     
     N = 10
     hi = nk.hilbert.Spin(s=0.5, N=N)
     H = get_Hamiltonian(N, J=1.0, alpha=3.0, hilbert=hi)
+
+    try:
+        with open("benchmark_exact.txt", "r") as f:
+            E_exact = float(f.read())
+    except:
+        E_exact = None
 
     
     model = ARSpinViT_Causal(
@@ -33,14 +39,15 @@ def run_ar_direct_vit():
         n_ffn_layers=1
     )
 
+    # 2. EL SAMPLER AUTOREGRESIVO
     sampler = nk.sampler.ARDirectSampler(hi)
     vstate = nk.vqs.MCState(sampler, model, n_samples=2048, seed=42)
     
-    
+   
     optimizer = optax.adam(learning_rate=0.001)
-    gs = nk.driver.VMC(H, optimizer, variational_state=vstate)
+    gs = nk.driver.VMC_SR(H, optimizer, variational_state=vstate, diag_shift=0.1)
 
-    print("Precalentando y compilando con JAX...")
+    print("Precalentando y compilando con JAX ...")
     gs.run(n_iter=1, show_progress=False)
     jax.block_until_ready(vstate.variables)
 
@@ -60,16 +67,21 @@ def run_ar_direct_vit():
     E_stat = vstate.expect(H)
     E_mean = E_stat.mean.real
     E_var = E_stat.variance.real
+    
     pearson_dev = jnp.sqrt(E_var) / abs(E_mean)
 
     H_sparse = H.to_sparse()
     evals, evecs = scipy.sparse.linalg.eigsh(H_sparse, k=1, which="SA")
     psi_exact = evecs[:, 0]
-    E_exact = evals[0]
+    
+    
+    if E_exact is None:
+        E_exact = evals[0]
 
     psi_vmc = vstate.to_array(normalize=True)
     overlap = float(jnp.abs(jnp.vdot(psi_exact, psi_vmc))**2)
 
+    # --- RESULTADOS FINALES ---
     print("\n>>> RESULTADOS FINALES:")
     print(f"Energia VMC       : {E_mean:.6f}")
     print(f"Energia Exacta    : {E_exact:.6f}")
