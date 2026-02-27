@@ -17,7 +17,7 @@ from physics.hamiltonian import get_Hamiltonian
 from models.vitB import ARSpinViT_Causal
 
 def run_ar_direct_vit():
-    print(">>> BENCHMARK 06B: MI ViT CAUSAL + SAMPLEO DIRECTO")
+    print(">>> BENCHMARK 06B: ViT AR + SAMPLEO DIRECTO")
     print("---------------------------------------------------------")
     
     N = 10
