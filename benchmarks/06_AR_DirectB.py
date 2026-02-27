@@ -26,6 +26,7 @@ def run_ar_direct_vit():
 
     
     model = ARSpinViT_Causal(
+        hilbert=hi,
         embedding_d=8,
         n_heads=2,
         n_blocks=2,
