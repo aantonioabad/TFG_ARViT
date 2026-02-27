@@ -36,7 +36,7 @@ def run_mean_field():
     start_time = time.time()
     
     log = nk.logging.JsonLog("resultado_benchmark_02", save_params=False)
-    gs.run(n_iter=1500, out=log, show_progress=True)
+    gs.run(n_iter=500, out=log, show_progress=True)
     
     jax.block_until_ready(vstate.variables)
     end_time = time.time()
