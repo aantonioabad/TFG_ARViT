@@ -21,7 +21,8 @@ def run_mean_field():
     hi = nk.hilbert.Spin(s=0.5, N=N)
     H = get_Hamiltonian(N, J=1.0, alpha=3.0, hilbert=hi)
 
-    model = nk.models.Jastrow()
+    # Forzamos param_dtype a float para evitar conflictos complejos
+    model = nk.models.Jastrow(param_dtype=float)
 
     sampler = nk.sampler.MetropolisLocal(hi)
     vstate = nk.vqs.MCState(sampler, model, n_samples=2048, seed=42)
@@ -29,7 +30,7 @@ def run_mean_field():
     optimizer = optax.adam(learning_rate=0.01)
     gs = nk.driver.VMC(H, optimizer, variational_state=vstate, preconditioner=nk.optimizer.SR(diag_shift=0.1))
 
-    print("Precalentando y compilando con JAX ...")
+    print("Precalentando y compilando con JAX (1 iteracion)...")
     gs.run(n_iter=1, show_progress=False)
     jax.block_until_ready(vstate.variables)
 
@@ -37,7 +38,7 @@ def run_mean_field():
     start_time = time.time()
     
     log = nk.logging.JsonLog("resultado_benchmark_02", save_params=False)
-    gs.run(n_iter=500, out=log, show_progress=True)
+    gs.run(n_iter=1500, out=log, show_progress=True)
     
     jax.block_until_ready(vstate.variables)
     end_time = time.time()
