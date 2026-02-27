@@ -35,7 +35,7 @@ def run_ar_metropolis():
     optimizer = optax.adam(learning_rate=0.001)
     gs = nk.driver.VMC_SR(H, optimizer, variational_state=vstate, diag_shift=0.1)
 
-    print("Precalentando y compilando con JAX (1 iteracion)...")
+    print("Precalentando y compilando con JAX ...")
     gs.run(n_iter=1, show_progress=False)
     jax.block_until_ready(vstate.variables)
 

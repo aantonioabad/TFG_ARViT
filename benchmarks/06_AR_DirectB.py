@@ -1,55 +1,9 @@
 import os
 import sys
-
-# Header
-current_dir = os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.dirname(current_dir)
-sys.path.append(parent_dir)
-
-import netket as nk
-import optax
-import time
-from physics.hamiltonian import get_Hamiltonian
-from models.vitB import ARSpinViT_Causal
-
-def run_ar_direct():
-    print(">>> BENCHMARK 06: MI ViT CAUSAL + SAMPLEO DIRECTO")
-    print("---------------------------------------------------------")
-    
-    N = 10
-    hi = nk.hilbert.Spin(s=0.5, N=N)
-    H = get_Hamiltonian(N, J=1.0, alpha=3.0, hilbert=hi)
-
-    
-    model = ARSpinViT_Causal(
-        hilbert=hi, 
-        embedding_d=8,     
-        n_blocks=2, 
-        n_heads=2,         
-        n_ffn_layers=1    
-    )
-
-    sampler = nk.sampler.ARDirectSampler(hi)
-    vstate = nk.vqs.MCState(sampler, model, n_samples=2048, seed=42)
-    vstate.chunk_size = 128
-    optimizer = optax.adam(learning_rate=0.001)
-    gs = nk.driver.VMC(H, optimizer, variational_state=vstate)
-
-    start_time = time.time()
-    log = nk.logging.JsonLog("resultado_benchmark_06B", save_params=False)
-    gs.run(n_iter=1500, out=log, show_progress=True)
-    end_time = time.time()
-    
-    print(f"\nEnergía final: {log['Energy'].Mean[-1]:.6f}")
-
-if __name__ == "__main__":
-    run_ar_direct()
-
-
-import os
-import sys
 import time
 import jax
+import jax.numpy as jnp
+import scipy.sparse.linalg
 import netket as nk
 import optax
 
@@ -63,19 +17,14 @@ from physics.hamiltonian import get_Hamiltonian
 from models.vitB import ARSpinViT_Causal
 
 def run_ar_direct_vit():
-    print(">>> BENCHMARK 06B: MI ViT CAUSAL + SAMPLEO DIRECTO")
+    print(">>> BENCHMARK 06B: ViT AR + SAMPLEO DIRECTO")
     print("---------------------------------------------------------")
     
     N = 10
     hi = nk.hilbert.Spin(s=0.5, N=N)
     H = get_Hamiltonian(N, J=1.0, alpha=3.0, hilbert=hi)
 
-    try:
-        with open("benchmark_exact.txt", "r") as f:
-            E_exact = float(f.read())
-    except:
-        E_exact = None
-
+    
     model = ARSpinViT_Causal(
         embedding_d=8,
         n_heads=2,
@@ -86,11 +35,11 @@ def run_ar_direct_vit():
     sampler = nk.sampler.ARDirectSampler(hi)
     vstate = nk.vqs.MCState(sampler, model, n_samples=2048, seed=42)
     
-    # Recuerda que aqui quitamos el VMC_SR y usamos VMC normal para evitar el colapso del QGT
+    
     optimizer = optax.adam(learning_rate=0.001)
     gs = nk.driver.VMC(H, optimizer, variational_state=vstate)
 
-    print("Precalentando y compilando con JAX (1 iteracion)...")
+    print("Precalentando y compilando con JAX...")
     gs.run(n_iter=1, show_progress=False)
     jax.block_until_ready(vstate.variables)
 
@@ -98,19 +47,35 @@ def run_ar_direct_vit():
     start_time = time.time()
     
     log = nk.logging.JsonLog("resultado_benchmark_06B", save_params=False)
-    gs.run(n_iter=1500, out=log, show_progress=True)
+    
+    
+    gs.run(n_iter=500, out=log, show_progress=True)
     
     jax.block_until_ready(vstate.variables)
     end_time = time.time()
     
-    E_final = log["Energy"].Mean[-1]
-    
-    print("\n>>> RESULTADOS 06B_ViT_CAUSAL:")
-    print(f"Energia ViT Causal: {E_final:.6f}")
-    if E_exact:
-        print(f"Energia Exacta    : {E_exact:.6f}")
-        print(f"Error             : {abs((E_final - E_exact)/E_exact):.2%}")
-    print(f"Tiempo de ejecucion puro: {end_time - start_time:.2f} s")
+    # --- CÁLCULO DE NUEVAS MÉTRICAS ---
+    print("\nCalculando métricas finales (Fidelidad y Pearson)...")
+    E_stat = vstate.expect(H)
+    E_mean = E_stat.mean.real
+    E_var = E_stat.variance.real
+    pearson_dev = jnp.sqrt(E_var) / abs(E_mean)
+
+    H_sparse = H.to_sparse()
+    evals, evecs = scipy.sparse.linalg.eigsh(H_sparse, k=1, which="SA")
+    psi_exact = evecs[:, 0]
+    E_exact = evals[0]
+
+    psi_vmc = vstate.to_array(normalize=True)
+    overlap = float(jnp.abs(jnp.vdot(psi_exact, psi_vmc))**2)
+
+    print("\n>>> RESULTADOS FINALES:")
+    print(f"Energia VMC       : {E_mean:.6f}")
+    print(f"Energia Exacta    : {E_exact:.6f}")
+    print(f"Error Relativo    : {abs((E_mean - E_exact)/E_exact):.2%}")
+    print(f"Desviacion Pearson: {pearson_dev:.6f}")
+    print(f"Fidelidad         : {overlap:.6f}")
+    print(f"Tiempo puro       : {end_time - start_time:.2f} s")
 
 if __name__ == "__main__":
     run_ar_direct_vit()
