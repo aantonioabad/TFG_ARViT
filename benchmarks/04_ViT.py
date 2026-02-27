@@ -2,6 +2,8 @@ import os
 import sys
 import time
 import jax
+import jax.numpy as jnp
+import scipy.sparse.linalg
 import netket as nk
 import optax
 
@@ -23,12 +25,6 @@ def run_vit_benchmark():
     hi = nk.hilbert.Spin(s=0.5, N=N)
     H = get_Hamiltonian(N, J=1.0, alpha=3.0, hilbert=hi)
 
-    try:
-        with open("benchmark_exact.txt", "r") as f:
-            E_exact = float(f.read())
-    except:
-        E_exact = None
-
     model = BatchedSpinViT(
         token_size=1,
         embedding_d=8,
@@ -45,7 +41,7 @@ def run_vit_benchmark():
     optimizer = optax.adam(learning_rate=0.001)
     gs = nk.driver.VMC_SR(H, optimizer, variational_state=vstate, diag_shift=0.1)
 
-    print("Precalentando y compilando con JAX (1 iteracion)...")
+    print("Precalentando y compilando con JAX...")
     gs.run(n_iter=1, show_progress=False)
     jax.block_until_ready(vstate.variables)
 
@@ -58,14 +54,27 @@ def run_vit_benchmark():
     jax.block_until_ready(vstate.variables)
     end_time = time.time()
     
-    E_final = log["Energy"].Mean[-1]
-    
-    print("\n>>> RESULTADOS 04_ViT:")
-    print(f"Energia ViT : {E_final:.6f}")
-    if E_exact:
-        print(f"Energia Exacta: {E_exact:.6f}")
-        print(f"Error       : {abs((E_final - E_exact)/E_exact):.2%}")
-    print(f"Tiempo de ejecucion puro: {end_time - start_time:.2f} s")
+    print("\nCalculando metricas finales (Fidelidad y Pearson)...")
+    E_stat = vstate.expect(H)
+    E_mean = E_stat.mean.real
+    E_var = E_stat.variance.real
+    pearson_dev = jnp.sqrt(E_var) / abs(E_mean)
+
+    H_sparse = H.to_sparse()
+    evals, evecs = scipy.sparse.linalg.eigsh(H_sparse, k=1, which="SA")
+    psi_exact = evecs[:, 0]
+    E_exact = evals[0]
+
+    psi_vmc = vstate.to_array(normalize=True)
+    overlap = float(jnp.abs(jnp.vdot(psi_exact, psi_vmc))**2)
+
+    print("\n>>> RESULTADOS FINALES:")
+    print(f"Energia VMC       : {E_mean:.6f}")
+    print(f"Energia Exacta    : {E_exact:.6f}")
+    print(f"Error Relativo    : {abs((E_mean - E_exact)/E_exact):.2%}")
+    print(f"Desviacion Pearson: {pearson_dev:.6f}")
+    print(f"Fidelidad         : {overlap:.6f}")
+    print(f"Tiempo puro       : {end_time - start_time:.2f} s")
 
 if __name__ == "__main__":
     run_vit_benchmark()

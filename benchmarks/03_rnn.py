@@ -2,6 +2,8 @@ import os
 import sys
 import time
 import jax
+import jax.numpy as jnp
+import scipy.sparse.linalg
 import netket as nk
 import optax
 
@@ -21,12 +23,6 @@ def run_rnn():
     hi = nk.hilbert.Spin(s=0.5, N=N)
     H = get_Hamiltonian(N, J=1.0, alpha=3.0, hilbert=hi)
 
-    try:
-        with open("benchmark_exact.txt", "r") as f:
-            E_exact = float(f.read())
-    except:
-        E_exact = None
-
     model = nk.experimental.models.LSTMNet(
         hilbert=hi,
         layers=2,
@@ -44,7 +40,7 @@ def run_rnn():
     gs.run(n_iter=1, show_progress=False)
     jax.block_until_ready(vstate.variables)
 
-    print("Cronometrado...")
+    print("Iniciando benchmark cronometrado...")
     start_time = time.time()
     
     log = nk.logging.JsonLog("resultado_benchmark_03", save_params=False)
@@ -53,17 +49,27 @@ def run_rnn():
     jax.block_until_ready(vstate.variables)
     end_time = time.time()
     
-    E_final = log["Energy"].Mean[-1]
-    
-    print("\n>>> RESULTADOS RNN (LSTM):")
-    print(f"Energia RNN   : {E_final:.6f}")
-    
-    if E_exact:
-        print(f"Energia Exacta: {E_exact:.6f}")
-        err = abs((E_final - E_exact) / E_exact)
-        print(f"Error Relativo: {err:.2%}")
-        
-    print(f"Tiempo de ejecucion puro: {end_time - start_time:.2f} s")
+    print("\nCalculando metricas finales (Fidelidad y Pearson)...")
+    E_stat = vstate.expect(H)
+    E_mean = E_stat.mean.real
+    E_var = E_stat.variance.real
+    pearson_dev = jnp.sqrt(E_var) / abs(E_mean)
+
+    H_sparse = H.to_sparse()
+    evals, evecs = scipy.sparse.linalg.eigsh(H_sparse, k=1, which="SA")
+    psi_exact = evecs[:, 0]
+    E_exact = evals[0]
+
+    psi_vmc = vstate.to_array(normalize=True)
+    overlap = float(jnp.abs(jnp.vdot(psi_exact, psi_vmc))**2)
+
+    print("\n>>> RESULTADOS FINALES:")
+    print(f"Energia VMC       : {E_mean:.6f}")
+    print(f"Energia Exacta    : {E_exact:.6f}")
+    print(f"Error Relativo    : {abs((E_mean - E_exact)/E_exact):.2%}")
+    print(f"Desviacion Pearson: {pearson_dev:.6f}")
+    print(f"Fidelidad         : {overlap:.6f}")
+    print(f"Tiempo puro       : {end_time - start_time:.2f} s")
 
 if __name__ == "__main__":
     run_rnn()
