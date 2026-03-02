@@ -41,6 +41,7 @@ class ARSpinViT_Causal(nk.models.AbstractARNN):
     n_heads: int = 2
     n_blocks: int = 2
     n_ffn_layers: int = 1
+    machine_pow: int = 2
 
     @nn.compact
     def conditionals_log_psi(self, inputs):
