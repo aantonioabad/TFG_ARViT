@@ -17,7 +17,7 @@ from physics.hamiltonian import get_Hamiltonian
 from models.vitB import ARSpinViT_Causal
 
 def run_ar_direct_vit():
-    print(">>> BENCHMARK 06B: ViT AR + SAMPLEO DIRECTO")
+    print(">>> BENCHMARK 06B: ARViT + SAMPLEO DIRECTO")
     print("---------------------------------------------------------")
     
     N = 10
@@ -30,7 +30,6 @@ def run_ar_direct_vit():
     except:
         E_exact = None
 
-    
     model = ARSpinViT_Causal(
         hilbert=hi,
         embedding_d=8,
@@ -39,15 +38,15 @@ def run_ar_direct_vit():
         n_ffn_layers=1
     )
 
-    # 2. EL SAMPLER AUTOREGRESIVO
+    # 2. Sampler Autoregresivo Directo 
     sampler = nk.sampler.ARDirectSampler(hi)
     vstate = nk.vqs.MCState(sampler, model, n_samples=2048, seed=42)
     
-   
+    # 3. Optimizador Cuántico SR 
     optimizer = optax.adam(learning_rate=0.001)
     gs = nk.driver.VMC_SR(H, optimizer, variational_state=vstate, diag_shift=0.1)
 
-    print("Precalentando y compilando con JAX ...")
+    print("Precalentando y compilando con JAX...")
     gs.run(n_iter=1, show_progress=False)
     jax.block_until_ready(vstate.variables)
 
@@ -55,8 +54,6 @@ def run_ar_direct_vit():
     start_time = time.time()
     
     log = nk.logging.JsonLog("resultado_benchmark_06B", save_params=False)
-    
-    
     gs.run(n_iter=500, out=log, show_progress=True)
     
     jax.block_until_ready(vstate.variables)
@@ -73,7 +70,6 @@ def run_ar_direct_vit():
     H_sparse = H.to_sparse()
     evals, evecs = scipy.sparse.linalg.eigsh(H_sparse, k=1, which="SA")
     psi_exact = evecs[:, 0]
-    
     
     if E_exact is None:
         E_exact = evals[0]
