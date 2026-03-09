@@ -88,3 +88,5 @@ def run_ar_direct_vit():
 
 if __name__ == "__main__":
     run_ar_direct_vit()
+
+

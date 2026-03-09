@@ -13,10 +13,12 @@ sys.path.append(parent_dir)
 
 os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 
+# --- IMPORTACIONES---
 from physics.hamiltonian import get_Hamiltonian
+from physics.utils import BestIterKeeper  
 
 def run_ar_direct():
-    print(">>> BENCHMARK 06: ARNN + DIRECT SAMPLING")
+    print(">>> BENCHMARK 06: ARNN (NK) + DIRECT SAMPLING ")
     print("---------------------------------------------------------")
     
     N = 10
@@ -39,17 +41,23 @@ def run_ar_direct():
     gs.run(n_iter=1, show_progress=False)
     jax.block_until_ready(vstate.variables)
 
+    keeper = BestIterKeeper(Hamiltonian=H, N=N, baseline=1e-6)
+
     print("Iniciando benchmark cronometrado...")
     start_time = time.time()
     
     log = nk.logging.JsonLog("resultado_benchmark_06", save_params=False)
-    gs.run(n_iter=500, out=log, show_progress=True)
+    
+    gs.run(n_iter=500, out=log, show_progress=True, callback=keeper.update)
     
     jax.block_until_ready(vstate.variables)
     end_time = time.time()
     
-    # --- CÁLCULO DE NUEVAS MÉTRICAS ---
-    print("\nCalculando métricas finales (Fidelidad y Pearson)...")
+    print(f"\nEntrenamiento terminado. Restaurando la mejor iteración (Energia: {keeper.best_energy:.6f})...")
+    vstate.parameters = keeper.best_state.parameters
+
+    # --- CÁLCULO DE MÉTRICAS ---
+    print("Calculando métricas finales (Fidelidad y Pearson) con el mejor estado...")
     E_stat = vstate.expect(H)
     E_mean = E_stat.mean.real
     E_var = E_stat.variance.real
