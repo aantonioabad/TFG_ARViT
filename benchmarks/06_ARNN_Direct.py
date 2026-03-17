@@ -46,7 +46,7 @@ def run_ar_direct():
     print("Iniciando benchmark cronometrado...")
     start_time = time.time()
     
-    log = nk.logging.JsonLog("resultado_benchmark_06", save_params=False)
+    log = nk.logging.JsonLog("resultado_benchmark_06_ARNN", save_params=False)
     
     gs.run(n_iter=500, out=log, show_progress=True, callback=keeper.update)
     
@@ -57,10 +57,11 @@ def run_ar_direct():
     vstate.parameters = keeper.best_state.parameters
 
     # --- CÁLCULO DE MÉTRICAS ---
-    print("Calculando métricas finales (Fidelidad y Pearson) con el mejor estado...")
+    print("Calculando métricas finales...")
     E_stat = vstate.expect(H)
     E_mean = E_stat.mean.real
     E_var = E_stat.variance.real
+    tau_c = getattr(E_stat, "tau_c", 0.0)
     pearson_dev = jnp.sqrt(E_var) / abs(E_mean)
 
     H_sparse = H.to_sparse()
@@ -77,7 +78,9 @@ def run_ar_direct():
     print(f"Error Relativo    : {abs((E_mean - E_exact)/E_exact):.2%}")
     print(f"Desviacion Pearson: {pearson_dev:.6f}")
     print(f"Fidelidad         : {overlap:.6f}")
+    print(f"Autocorrelación τ : {tau_c:.4f}")
     print(f"Tiempo puro       : {end_time - start_time:.2f} s")
+
 
 if __name__ == "__main__":
     run_ar_direct()

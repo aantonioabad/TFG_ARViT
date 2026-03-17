@@ -14,45 +14,53 @@ sys.path.append(parent_dir)
 os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 
 from physics.hamiltonian import get_Hamiltonian
+from physics.utils import BestIterKeeper
 
-def run_rnn():
-    print(">>> BENCHMARK 03: RED RECURRENTE (LSTM + Direct Sampling)")
+def run_lstm_direct():
+    print(">>> BENCHMARK 03: LSTM + DIRECT SAMPLING")
     print("---------------------------------------------------------")
     
     N = 10
     hi = nk.hilbert.Spin(s=0.5, N=N)
     H = get_Hamiltonian(N, J=1.0, alpha=3.0, hilbert=hi)
 
-    model = nk.experimental.models.LSTMNet(
+    # IMPORTANTE: Reemplaza esto con la forma exacta en la que llamabas a tu LSTM
+    # (ej: nk.models.ARNNLSTM1D o si usabas un modelo propio)
+    model = nk.models.ARNNConv1D(
         hilbert=hi,
         layers=2,
-        features=8,
-        param_dtype=float
+        features=16
     )
 
     sampler = nk.sampler.ARDirectSampler(hi)
     vstate = nk.vqs.MCState(sampler, model, n_samples=2048, seed=42)
     
-    optimizer = optax.adam(learning_rate=0.01)
+    optimizer = optax.adam(learning_rate=0.001)
     gs = nk.driver.VMC_SR(H, optimizer, variational_state=vstate, diag_shift=0.1)
 
-    print("Precalentando y compilando con JAX ...")
+    print("Precalentando y compilando con JAX...")
     gs.run(n_iter=1, show_progress=False)
     jax.block_until_ready(vstate.variables)
+
+    keeper = BestIterKeeper(Hamiltonian=H, N=N, baseline=1e-6)
 
     print("Iniciando benchmark cronometrado...")
     start_time = time.time()
     
-    log = nk.logging.JsonLog("resultado_benchmark_03", save_params=False)
-    gs.run(n_iter=500, out=log, show_progress=True)
+    log = nk.logging.JsonLog("resultado_benchmark_03_LSTM", save_params=False)
+    gs.run(n_iter=1000, out=log, show_progress=True, callback=keeper.update)
     
     jax.block_until_ready(vstate.variables)
     end_time = time.time()
     
-    print("\nCalculando metricas finales (Fidelidad y Pearson)...")
+    print(f"\nEntrenamiento terminado. Restaurando la mejor iteración (Energia: {keeper.best_energy:.6f})...")
+    vstate.parameters = keeper.best_state.parameters
+
+    print("Calculando métricas finales...")
     E_stat = vstate.expect(H)
     E_mean = E_stat.mean.real
     E_var = E_stat.variance.real
+    tau_c = getattr(E_stat, "tau_c", 0.0)
     pearson_dev = jnp.sqrt(E_var) / abs(E_mean)
 
     H_sparse = H.to_sparse()
@@ -69,7 +77,8 @@ def run_rnn():
     print(f"Error Relativo    : {abs((E_mean - E_exact)/E_exact):.2%}")
     print(f"Desviacion Pearson: {pearson_dev:.6f}")
     print(f"Fidelidad         : {overlap:.6f}")
+    print(f"Autocorrelación τ : {tau_c:.4f}")
     print(f"Tiempo puro       : {end_time - start_time:.2f} s")
 
 if __name__ == "__main__":
-    run_rnn()
+    run_lstm_direct()

@@ -11,42 +11,51 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 sys.path.append(parent_dir)
 
-from physics.hamiltonian import get_Hamiltonian
+os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 
-def run_mean_field():
-    print(">>> BENCHMARK 02: MEAN FIELD ANSATZ")
+from physics.hamiltonian import get_Hamiltonian
+from physics.utils import BestIterKeeper
+
+def run_jastrow_metropolis():
+    print(">>> BENCHMARK 02: JASTROW (MEAN FIELD) + METROPOLIS SAMPLING")
     print("---------------------------------------------------------")
     
     N = 10
     hi = nk.hilbert.Spin(s=0.5, N=N)
     H = get_Hamiltonian(N, J=1.0, alpha=3.0, hilbert=hi)
 
-    # Forzamos param_dtype a float para evitar conflictos complejos
+    # Forzamos los parámetros a float para evitar el error de los números complejos
     model = nk.models.Jastrow(param_dtype=float)
 
     sampler = nk.sampler.MetropolisLocal(hi)
     vstate = nk.vqs.MCState(sampler, model, n_samples=2048, seed=42)
     
-    optimizer = optax.adam(learning_rate=0.01)
-    gs = nk.driver.VMC(H, optimizer, variational_state=vstate, preconditioner=nk.optimizer.SR(diag_shift=0.1))
+    optimizer = optax.adam(learning_rate=0.001)
+    gs = nk.driver.VMC_SR(H, optimizer, variational_state=vstate, diag_shift=0.1)
 
-    print("Precalentando y compilando con JAX (1 iteracion)...")
+    print("Precalentando y compilando con JAX...")
     gs.run(n_iter=1, show_progress=False)
     jax.block_until_ready(vstate.variables)
+
+    keeper = BestIterKeeper(Hamiltonian=H, N=N, baseline=1e-6)
 
     print("Iniciando benchmark cronometrado...")
     start_time = time.time()
     
-    log = nk.logging.JsonLog("resultado_benchmark_02", save_params=False)
-    gs.run(n_iter=1500, out=log, show_progress=True)
+    log = nk.logging.JsonLog("resultado_benchmark_02_Jastrow", save_params=False)
+    gs.run(n_iter=1000, out=log, show_progress=True, callback=keeper.update)
     
     jax.block_until_ready(vstate.variables)
     end_time = time.time()
     
-    print("\nCalculando metricas finales (Fidelidad y Pearson)...")
+    print(f"\nEntrenamiento terminado. Restaurando la mejor iteración (Energia: {keeper.best_energy:.6f})...")
+    vstate.parameters = keeper.best_state.parameters
+
+    print("Calculando métricas finales...")
     E_stat = vstate.expect(H)
     E_mean = E_stat.mean.real
     E_var = E_stat.variance.real
+    tau_c = getattr(E_stat, "tau_c", 0.0)
     pearson_dev = jnp.sqrt(E_var) / abs(E_mean)
 
     H_sparse = H.to_sparse()
@@ -63,7 +72,8 @@ def run_mean_field():
     print(f"Error Relativo    : {abs((E_mean - E_exact)/E_exact):.2%}")
     print(f"Desviacion Pearson: {pearson_dev:.6f}")
     print(f"Fidelidad         : {overlap:.6f}")
+    print(f"Autocorrelación τ : {tau_c:.4f}")
     print(f"Tiempo puro       : {end_time - start_time:.2f} s")
 
 if __name__ == "__main__":
-    run_mean_field()
+    run_jastrow_metropolis()
