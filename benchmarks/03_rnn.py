@@ -17,24 +17,25 @@ from physics.hamiltonian import get_Hamiltonian
 from physics.utils import BestIterKeeper
 
 def run_lstm_direct():
-    print(">>> BENCHMARK 03: LSTM + DIRECT SAMPLING")
+    print(">>> BENCHMARK 03: LSTMNet + DIRECT SAMPLING")
     print("---------------------------------------------------------")
     
     N = 10
     hi = nk.hilbert.Spin(s=0.5, N=N)
     H = get_Hamiltonian(N, J=1.0, alpha=3.0, hilbert=hi)
 
-    
-    model = nk.models.ARNNConv1D(
+    # AQUÍ USAMOS LA LSTM QUE HAS PEDIDO
+    model = nk.models.LSTMNet(
         hilbert=hi,
         layers=2,
-        features=16,
-        kernel_size=2
+        features=16
     )
 
+    # Sampler Autoregresivo Directo
     sampler = nk.sampler.ARDirectSampler(hi)
     vstate = nk.vqs.MCState(sampler, model, n_samples=2048, seed=42)
     
+    # Optimizador y Driver
     optimizer = optax.adam(learning_rate=0.001)
     gs = nk.driver.VMC_SR(H, optimizer, variational_state=vstate, diag_shift=0.1)
 
@@ -63,6 +64,7 @@ def run_lstm_direct():
     tau_c = getattr(E_stat, "tau_c", 0.0)
     pearson_dev = jnp.sqrt(E_var) / abs(E_mean)
 
+    # Cálculo Exacto
     H_sparse = H.to_sparse()
     evals, evecs = scipy.sparse.linalg.eigsh(H_sparse, k=1, which="SA")
     psi_exact = evecs[:, 0]
