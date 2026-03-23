@@ -48,7 +48,7 @@ def run_ar_direct():
     
     log = nk.logging.JsonLog("resultado_benchmark_06_ARNN", save_params=False)
     
-    gs.run(n_iter=500, out=log, show_progress=True, callback=keeper.update)
+    gs.run(n_iter=1000, out=log, show_progress=True, callback=keeper.update)
     
     jax.block_until_ready(vstate.variables)
     end_time = time.time()
