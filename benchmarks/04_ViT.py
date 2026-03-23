@@ -13,9 +13,11 @@ sys.path.append(parent_dir)
 
 os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 
+# --- IMPORTACIONES LOCALES ---
 from physics.hamiltonian import get_Hamiltonian
 from physics.utils import BestIterKeeper
-# IMPORTANTE: Asegúrate de que esta importación coincide con tu modelo ViT antiguo
+
+# Importamos tu clase del ViT estándar
 from models.vit_standard import RealSpinViT
 
 def run_vit_metropolis():
@@ -26,15 +28,17 @@ def run_vit_metropolis():
     hi = nk.hilbert.Spin(s=0.5, N=N)
     H = get_Hamiltonian(N, J=1.0, alpha=3.0, hilbert=hi)
 
-    # Reemplaza con los parámetros exactos de tu ViT bidireccional
+    # --- INSTANCIACIÓN DE TU MODELO ---
+    # Añadido el final_architecture para evitar el error de argumentos
     model = RealSpinViT(
         embedding_d=8,
         n_heads=2,
         n_blocks=2,
         n_ffn_layers=1,
-        final_architecture=(16,)
+        final_architecture=(16,) 
     )
 
+    # Sampler de Metropolis Local (Aquí es donde la ineficiencia subirá el tau_c)
     sampler = nk.sampler.MetropolisLocal(hi)
     vstate = nk.vqs.MCState(sampler, model, n_samples=2048, seed=42)
     
@@ -45,6 +49,7 @@ def run_vit_metropolis():
     gs.run(n_iter=1, show_progress=False)
     jax.block_until_ready(vstate.variables)
 
+    # --- INICIALIZAMOS EL GUARDIÁN ---
     keeper = BestIterKeeper(Hamiltonian=H, N=N, baseline=1e-6)
 
     print("Iniciando benchmark cronometrado...")
@@ -56,13 +61,17 @@ def run_vit_metropolis():
     jax.block_until_ready(vstate.variables)
     end_time = time.time()
     
+    # --- RESTAURAMOS EL MEJOR ESTADO ---
     print(f"\nEntrenamiento terminado. Restaurando la mejor iteración (Energia: {keeper.best_energy:.6f})...")
     vstate.parameters = keeper.best_state.parameters
 
+    # --- CÁLCULO DE MÉTRICAS ---
     print("Calculando métricas finales...")
     E_stat = vstate.expect(H)
     E_mean = E_stat.mean.real
     E_var = E_stat.variance.real
+    
+    # Extraemos la autocorrelación (debería ser mayor que 0.0)
     tau_c = getattr(E_stat, "tau_c", 0.0)
     pearson_dev = jnp.sqrt(E_var) / abs(E_mean)
 
@@ -74,6 +83,7 @@ def run_vit_metropolis():
     psi_vmc = vstate.to_array(normalize=True)
     overlap = float(jnp.abs(jnp.vdot(psi_exact, psi_vmc))**2)
 
+    # --- RESULTADOS FINALES ---
     print("\n>>> RESULTADOS FINALES:")
     print(f"Energia VMC       : {E_mean:.6f}")
     print(f"Energia Exacta    : {E_exact:.6f}")
