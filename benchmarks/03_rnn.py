@@ -6,6 +6,7 @@ import jax.numpy as jnp
 import scipy.sparse.linalg
 import netket as nk
 import optax
+import netket.experimental
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
@@ -24,8 +25,7 @@ def run_lstm_direct():
     hi = nk.hilbert.Spin(s=0.5, N=N)
     H = get_Hamiltonian(N, J=1.0, alpha=3.0, hilbert=hi)
 
-    # AQUÍ USAMOS LA LSTM QUE HAS PEDIDO
-    model = nk.models.LSTMNet(
+    model = nk.experimental.models.FastLSTMNet(
         hilbert=hi,
         layers=2,
         features=16
