@@ -24,12 +24,12 @@ def run_lstm_direct():
     hi = nk.hilbert.Spin(s=0.5, N=N)
     H = get_Hamiltonian(N, J=1.0, alpha=3.0, hilbert=hi)
 
-    # IMPORTANTE: Reemplaza esto con la forma exacta en la que llamabas a tu LSTM
-    # (ej: nk.models.ARNNLSTM1D o si usabas un modelo propio)
+    
     model = nk.models.ARNNConv1D(
         hilbert=hi,
         layers=2,
-        features=16
+        features=16,
+        kernel_size=2
     )
 
     sampler = nk.sampler.ARDirectSampler(hi)
