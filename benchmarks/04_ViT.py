@@ -31,7 +31,8 @@ def run_vit_metropolis():
         embedding_d=8,
         n_heads=2,
         n_blocks=2,
-        n_ffn_layers=1
+        n_ffn_layers=1,
+        final_architecture=(16,)
     )
 
     sampler = nk.sampler.MetropolisLocal(hi)
