@@ -14,27 +14,31 @@ sys.path.append(parent_dir)
 os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 
 from physics.hamiltonian import get_Hamiltonian
-from models.vit_standard import RealSpinViT
+from physics.utils import BestIterKeeper
+
+# Asegúrate de que la importación viene del archivo correcto donde tengas BatchedSpinViT
+from models.vit_standard import BatchedSpinViT 
 
 def run_vit_metropolis():
-    print(">>> BENCHMARK 04: ViT ESTÁNDAR + METROPOLIS SAMPLING (VERSIÓN BASE)")
+    print(">>> BENCHMARK 04: ViT ESTÁNDAR + METROPOLIS SAMPLING")
     print("---------------------------------------------------------")
     
     N = 10
     hi = nk.hilbert.Spin(s=0.5, N=N)
     H = get_Hamiltonian(N, J=1.0, alpha=3.0, hilbert=hi)
 
-    # ATENCIÓN AQUÍ: 
-    # Asegúrate de que estos números son EXACTAMENTE los mismos que usabas antes
-    # cuando el código funcionaba. Si usabas otras dimensiones, cámbialas.
-    model = RealSpinViT(
+    # TU MODELO ORIGINAL EXACTO
+    model = BatchedSpinViT(
+        token_size=1,
         embedding_d=8,
         n_heads=2,
         n_blocks=2,
         n_ffn_layers=1,
-        final_architecture=(16,)
+        final_architecture=[8, 4], 
+        is_complex=False
     )
 
+    # Metropolis es lo que nos dará una autocorrelación > 0
     sampler = nk.sampler.MetropolisLocal(hi)
     vstate = nk.vqs.MCState(sampler, model, n_samples=2048, seed=42)
     
@@ -45,19 +49,27 @@ def run_vit_metropolis():
     gs.run(n_iter=1, show_progress=False)
     jax.block_until_ready(vstate.variables)
 
-    print("Iniciando entrenamiento...")
+    keeper = BestIterKeeper(Hamiltonian=H, N=N, baseline=1e-6)
+
+    print("Iniciando benchmark cronometrado...")
     start_time = time.time()
     
-    log = nk.logging.JsonLog("resultado_benchmark_04_base", save_params=False)
-    gs.run(n_iter=1000, out=log, show_progress=True)
+    log = nk.logging.JsonLog("resultado_benchmark_04_ViT", save_params=False)
+    gs.run(n_iter=1000, out=log, show_progress=True, callback=keeper.update)
     
     jax.block_until_ready(vstate.variables)
     end_time = time.time()
+    
+    print(f"\nEntrenamiento terminado. Restaurando la mejor iteración (Energia: {keeper.best_energy:.6f})...")
+    vstate.parameters = keeper.best_state.parameters
 
-    print("Calculando métricas finales con la ÚLTIMA iteración...")
+    print("Calculando métricas finales...")
     E_stat = vstate.expect(H)
     E_mean = E_stat.mean.real
     E_var = E_stat.variance.real
+    
+    # Aquí calculamos por fin el tau_c
+    tau_c = getattr(E_stat, "tau_c", 0.0)
     pearson_dev = jnp.sqrt(E_var) / abs(E_mean)
 
     H_sparse = H.to_sparse()
@@ -74,6 +86,7 @@ def run_vit_metropolis():
     print(f"Error Relativo    : {abs((E_mean - E_exact)/E_exact):.2%}")
     print(f"Desviacion Pearson: {pearson_dev:.6f}")
     print(f"Fidelidad         : {overlap:.6f}")
+    print(f"Autocorrelación τ : {tau_c:.4f}")
     print(f"Tiempo puro       : {end_time - start_time:.2f} s")
 
 if __name__ == "__main__":
