@@ -34,7 +34,7 @@ def run_vit_metropolis():
         n_heads=2,
         n_blocks=2,
         n_ffn_layers=1,
-        final_architecture=[8, 4], 
+        final_architecture=(8, 4), 
         is_complex=False
     )
 
