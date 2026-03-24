@@ -14,7 +14,7 @@ sys.path.append(parent_dir)
 os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 
 # Importamos tu Hamiltoniano y tus utilidades, nada más.
-from physics.ising_netket import get_native_Ising
+from physics.ising_netket import get_Ising
 from physics.utils import BestIterKeeper
 
 def run_pure_netket_experiment(N, J, dimensions, phase_name):
@@ -23,9 +23,8 @@ def run_pure_netket_experiment(N, J, dimensions, phase_name):
     print(f"{'='*60}")
 
     # 1. Obtenemos el Hilbert y el Hamiltoniano nativo de NetKet
-    hi, H = get_native_Ising(N=N, J=J, h_x=1.0, dimensions=dimensions)
+    hi, H = get_Ising(N=N, J=J, h_x=1.0, dimensions=dimensions)
 
-    # 2. USAMOS EL MODELO INTEGRADO DE NETKET (ARNN Densa)
     model = nk.models.ARNNDense(
         hilbert=hi,
         layers=3,
@@ -49,7 +48,7 @@ def run_pure_netket_experiment(N, J, dimensions, phase_name):
     print(f"Iniciando entrenamiento para {phase_name} {dimensions}D...")
     start_time = time.time()
     
-    log = nk.logging.JsonLog(f"resultado_ising_nativo_{dimensions}D_{phase_name}", save_params=False)
+    log = nk.logging.JsonLog(f"resultado_ising_{dimensions}D_{phase_name}", save_params=False)
     # 500 iteraciones para no eternizarnos, puedes subirlo a 1000 luego
     gs.run(n_iter=500, out=log, show_progress=True, callback=keeper.update)
     
