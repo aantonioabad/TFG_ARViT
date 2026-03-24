@@ -43,7 +43,7 @@ def run_jastrow_metropolis():
     start_time = time.time()
     
     log = nk.logging.JsonLog("resultado_benchmark_02_Jastrow", save_params=False)
-    gs.run(n_iter=250, out=log, show_progress=True, callback=keeper.update)
+    gs.run(n_iter=1000, out=log, show_progress=True, callback=keeper.update)
     
     jax.block_until_ready(vstate.variables)
     end_time = time.time()
@@ -56,25 +56,6 @@ def run_jastrow_metropolis():
 
     print("Calculando métricas finales...")
     E_stat = vstate.expect(H)
-    
-    # --- MODO DETECTIVE ACTIVADO ---
-    print("\n>>> DEBUG: INSPECCIONANDO E_stat <<<")
-    print(f"Impresión estándar de NetKet: {E_stat}")
-    
-    # Comprobamos si tiene el método to_dict() para ver todas las claves
-    if hasattr(E_stat, "to_dict"):
-        print(f"Diccionario de valores: {E_stat.to_dict()}")
-        
-    # Buscamos manualmente los nombres más comunes para la autocorrelación
-    for nombre_variable in ["tau_c", "tau_corr", "autocorr", "R_hat"]:
-        if hasattr(E_stat, nombre_variable):
-            valor = getattr(E_stat, nombre_variable)
-            print(f"[¡BINGO!] La variable '{nombre_variable}' existe y su valor es: {valor}")
-        else:
-            print(f"[Fallo] La variable '{nombre_variable}' NO existe en este objeto.")
-    print(">>> FIN DEL DEBUG <<<\n")
-    # -------------------------------
-
 
     E_mean = E_stat.mean.real
     E_var = E_stat.variance.real
