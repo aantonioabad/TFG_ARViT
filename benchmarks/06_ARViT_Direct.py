@@ -70,7 +70,7 @@ def run_arvit_direct():
     E_stat = vstate.expect(H)
     E_mean = E_stat.mean.real
     E_var = E_stat.variance.real
-    tau_c = getattr(E_stat, "tau_corr", 0.0)  
+    tau_c = getattr(E_stat, "tau_corr", 0.0) 
     pearson_dev = jnp.sqrt(E_var) / abs(E_mean)
 
     H_sparse = H.to_sparse()
