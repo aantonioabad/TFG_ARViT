@@ -43,7 +43,7 @@ def run_vit_metropolis():
     sampler = nk.sampler.MetropolisLocal(
         hi,
         n_chains=16, # Número de exploradores en paralelo
-        n_sweeps=N   # Muestras que se dejan pasar entre extracciones
+        sweep_size=N   # Muestras que se dejan pasar entre extracciones
     )
     vstate = nk.vqs.MCState(sampler, model, n_samples=2048, seed=42)
     
