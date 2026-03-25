@@ -16,6 +16,8 @@ os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 # --- IMPORTACIONES---
 from physics.hamiltonian import get_Hamiltonian
 from physics.utils import BestIterKeeper  
+from physics.utils import plot_markov_autocorrelation
+
 
 def run_ar_direct():
     print(">>> BENCHMARK 06: ARNN (NK) + DIRECT SAMPLING ")
@@ -80,6 +82,7 @@ def run_ar_direct():
     print(f"Fidelidad         : {overlap:.6f}")
     print(f"Autocorrelación τ : {tau_c:.4f}")
     print(f"Tiempo puro       : {end_time - start_time:.2f} s")
+    plot_markov_autocorrelation(vstate, H, max_lag=40, filename="autocorr_06_ARNNDirect.png")
 
 
 if __name__ == "__main__":

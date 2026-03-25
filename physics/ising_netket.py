@@ -34,7 +34,7 @@ def get_Ising(
     # 2. Definimos el espacio de Hilbert
     hi = nk.hilbert.Spin(s=0.5, N=graph.n_nodes)
 
-    # 3. Construimos el Ising Nativo de NetKet (Resuelve el "Modelo de Ising Básico")
+    # 3. Construimos el Ising Nativo de NetKet Resuelve el "Modelo de Ising Básico"-- primeros vecinos
     # H = J * sum(<i,j>) Z_i Z_j - h_x * sum(i) X_i
     H_ising = nk.operator.Ising(hilbert=hi, graph=graph, h=h_x, J=J)
     

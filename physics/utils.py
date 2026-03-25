@@ -6,6 +6,7 @@ import flax
 import jax
 import jax.numpy as jnp
 import numpy as np
+import matplotlib.pyplot as plt
 import numpy.typing as npt
 from netket.sampler import MetropolisRule
 from netket.utils.struct import dataclass
@@ -110,3 +111,48 @@ class InvertMagnetization(MetropolisRule):
         )
         σp = σ.at[indxs, :].multiply(-1)
         return σp, None
+    
+
+def plot_markov_autocorrelation(vstate, H, max_lag=50, filename="autocorrelacion.png"):
+    """
+    Extrae las energías locales y pinta el decaimiento de la autocorrelación
+    frente a la distancia en la cadena (Lag t).
+    """
+    print(f"\nGenerando gráfica de autocorrelación en: {filename} ...")
+    
+    E_loc = vstate.local_estimators(H).real
+    
+    # 2. Manejamos Metropolis (2D: n_chains, n_samples) vs Directo (1D plano)
+    if E_loc.ndim > 1:
+        cadena = np.array(E_loc[0, :])
+    else:
+        cadena = np.array(E_loc)
+        
+    # 3. Función matemática de Autocorrelación (ACF)
+    def acf(x):
+        x_centered = x - np.mean(x)
+        norm = np.sum(x_centered**2)
+        if norm == 0: 
+            return np.zeros(len(x))
+        corr = np.correlate(x_centered, x_centered, mode='full')
+        return corr[len(corr)//2:] / norm
+
+    autocorr_values = acf(cadena)
+    limit = min(max_lag, len(autocorr_values))
+    lags = np.arange(limit)
+    autocorr_values = autocorr_values[:limit]
+
+    # 5. Pintamos la gráfica
+    plt.figure(figsize=(8, 5))
+    plt.plot(lags, autocorr_values, marker='o', linestyle='-', color='#1f77b4', markersize=5)
+    plt.axhline(0, color='red', linestyle='--', alpha=0.5)
+    
+    plt.title("Decaimiento de Autocorrelación entre muestras", fontsize=14)
+    plt.xlabel("Distancia en la cadena (Lag $t$)", fontsize=12)
+    plt.ylabel("Autocorrelación $C(t)$", fontsize=12)
+    plt.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig(filename, dpi=300)
+    plt.close()
+    print(f"[ÉXITO] Gráfica guardada como {filename}")

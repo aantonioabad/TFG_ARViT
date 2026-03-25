@@ -15,6 +15,7 @@ os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 
 from physics.hamiltonian import get_Hamiltonian
 from physics.utils import BestIterKeeper
+from physics.utils import plot_markov_autocorrelation
 
 # Asegúrate de que la importación viene del archivo correcto donde tengas BatchedSpinViT
 from models.vit_standard import BatchedSpinViT 
@@ -39,7 +40,11 @@ def run_vit_metropolis():
     )
 
     # Metropolis es lo que nos dará una autocorrelación > 0
-    sampler = nk.sampler.MetropolisLocal(hi)
+    sampler = nk.sampler.MetropolisLocal(
+        hi,
+        n_chains=16, # Número de exploradores en paralelo
+        n_sweeps=N   # Muestras que se dejan pasar entre extracciones
+    )
     vstate = nk.vqs.MCState(sampler, model, n_samples=2048, seed=42)
     
     optimizer = optax.adam(learning_rate=0.001)
@@ -86,6 +91,7 @@ def run_vit_metropolis():
     print(f"Fidelidad         : {overlap:.6f}")
     print(f"Autocorrelación τ : {tau_c:.4f}")
     print(f"Tiempo puro       : {end_time - start_time:.2f} s")
+    plot_markov_autocorrelation(vstate, H, max_lag=40, filename="autocorr_04_ViT.png")
 
 if __name__ == "__main__":
     run_vit_metropolis()

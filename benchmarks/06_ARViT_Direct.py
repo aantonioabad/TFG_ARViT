@@ -16,7 +16,9 @@ os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 # --- IMPORTACIONES LOCALES ---
 from physics.hamiltonian import get_Hamiltonian
 from models.vitB import ARSpinViT_Causal
-from physics.utils import BestIterKeeper  
+from physics.utils import BestIterKeeper 
+from physics.utils import plot_markov_autocorrelation
+
 
 def run_arvit_direct():
     print(">>> BENCHMARK 06_ARViT: ARViT + DIRECT SAMPLING")
@@ -90,6 +92,7 @@ def run_arvit_direct():
     print(f"Fidelidad         : {overlap:.6f}")
     print(f"Autocorrelación τ : {tau_c:.4f}")
     print(f"Tiempo puro       : {end_time - start_time:.2f} s")
+    plot_markov_autocorrelation(vstate, H, max_lag=40, filename="autocorr_06_ARViTDirect.png")
 
 if __name__ == "__main__":
     run_arvit_direct()

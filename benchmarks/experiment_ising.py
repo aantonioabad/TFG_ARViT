@@ -17,7 +17,7 @@ os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 from physics.ising_netket import get_Ising
 from physics.utils import BestIterKeeper
 
-def run_pure_netket_experiment(N, J, dimensions, phase_name):
+def run_netket_experiment(N, J, dimensions, phase_name):
     print(f"\n{'='*60}")
     print(f">>> EXPERIMENTO NETKET PURO: Ising {dimensions}D | Fase: {phase_name} | N={N} | J={J}")
     print(f"{'='*60}")
@@ -49,7 +49,7 @@ def run_pure_netket_experiment(N, J, dimensions, phase_name):
     start_time = time.time()
     
     log = nk.logging.JsonLog(f"resultado_ising_{dimensions}D_{phase_name}", save_params=False)
-    # 500 iteraciones para no eternizarnos, puedes subirlo a 1000 luego
+    
     gs.run(n_iter=500, out=log, show_progress=True, callback=keeper.update)
     
     jax.block_until_ready(vstate.variables)
@@ -75,15 +75,15 @@ def run_pure_netket_experiment(N, J, dimensions, phase_name):
     print(f"Energia Exacta    : {E_exact:.6f}")
     print(f"Error Relativo    : {abs((E_mean - E_exact)/E_exact):.2%}")
     print(f"Desviacion Pearson: {pearson_dev:.6f}")
-    print(f"Autocorrelación τ : {tau_c:.4f}")
+    #print(f"Autocorrelación τ : {tau_c:.4f}")
     print(f"Tiempo puro       : {end_time - start_time:.2f} s")
     print(f"{'='*60}\n")
 
 if __name__ == "__main__":
     # --- 1D CHAIN (N=10) ---
-    run_pure_netket_experiment(N=10, J=-1.0, dimensions=1, phase_name="FM")
-    run_pure_netket_experiment(N=10, J=1.0,  dimensions=1, phase_name="AFM")
+    run_netket_experiment(N=10, J=-1.0, dimensions=1, phase_name="FM")
+    run_netket_experiment(N=10, J=1.0,  dimensions=1, phase_name="AFM")
 
     # --- 2D GRID (N=16, cuadrado de 4x4) ---
-    run_pure_netket_experiment(N=16, J=-1.0, dimensions=2, phase_name="FM")
-    run_pure_netket_experiment(N=16, J=1.0,  dimensions=2, phase_name="AFM")
+    run_netket_experiment(N=16, J=-1.0, dimensions=2, phase_name="FM")
+    run_netket_experiment(N=16, J=1.0,  dimensions=2, phase_name="AFM")
