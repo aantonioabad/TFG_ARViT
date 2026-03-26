@@ -82,7 +82,20 @@ def run_ar_direct():
     print(f"Fidelidad         : {overlap:.6f}")
     print(f"Autocorrelación τ : {tau_c:.4f}")
     print(f"Tiempo puro       : {end_time - start_time:.2f} s")
-    plot_markov_autocorrelation(vstate, H, max_lag=40, filename="autocorr_06_ARNNDirect.png")
+
+    benchmark_title = "AR Direct"
+
+    plot_markov_autocorrelation(
+    vstate=vstate, 
+    H=H, 
+    benchmark_name=benchmark_title, 
+    max_lag=40, 
+    filename="autocorr_06_ARNNDirect.png" 
+    )
+    
+    
+
+ 
 
 
 if __name__ == "__main__":

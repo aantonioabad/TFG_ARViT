@@ -85,7 +85,16 @@ def run_jastrow_metropolis():
     print(f"Fidelidad         : {overlap:.6f}")
     print(f"Autocorrelación τ : {tau_c:.4f}")
     print(f"Tiempo puro       : {end_time - start_time:.2f} s")
-    plot_markov_autocorrelation(vstate, H, max_lag=40, filename="autocorr_02_MeanField.png")
+    
+    benchmark_title = "Mean Field"
+        
+    plot_markov_autocorrelation(
+        vstate=vstate, 
+        H=H, 
+        benchmark_name=benchmark_title, 
+        max_lag=40, 
+        filename="autocorr_02_MeanField.png" 
+        )    
 
 if __name__ == "__main__":
     run_jastrow_metropolis()

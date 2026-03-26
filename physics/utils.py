@@ -113,46 +113,84 @@ class InvertMagnetization(MetropolisRule):
         return σp, None
     
 
-def plot_markov_autocorrelation(vstate, H, max_lag=50, filename="autocorrelacion.png"):
+
+def acf_helper(x):
+    x_centered = x - np.mean(x)
+    norm = np.sum(x_centered**2)
+    if norm == 0: return np.zeros(len(x))
+    corr = np.correlate(x_centered, x_centered, mode='full')
+    return corr[len(corr)//2:] / norm
+
+def plot_markov_autocorrelation(
+    vstate, 
+    H, 
+    benchmark_name: str, 
+    max_lag=50, 
+    filename="autocorrelacion.png"
+):
     """
-    Extrae las energías locales y pinta el decaimiento de la autocorrelación
-    frente a la distancia en la cadena (Lag t).
+    Genera una gráfica de autocorrelación temporal profesional y científica
+    para una tesis (TFG). Limita colores, aumenta legibilidad y personaliza el título.
     """
-    print(f"\nGenerando gráfica de autocorrelación en: {filename} ...")
+    print(f"\nGenerando gráfica profesional para '{benchmark_name}' en: {filename} ...")
     
+    # 1. Obtenemos las energías locales
     E_loc = vstate.local_estimators(H).real
     
-    # 2. Manejamos Metropolis (2D: n_chains, n_samples) vs Directo (1D plano)
+    # 2. Manejamos Metropolis (2D chains, samples) vs Directo (1D plano)
     if E_loc.ndim > 1:
-        cadena = np.array(E_loc[0, :])
+        cadena = np.array(E_loc[0, :]) # Cogemos la primera cadena
     else:
         cadena = np.array(E_loc)
         
-    # 3. Función matemática de Autocorrelación (ACF)
-    def acf(x):
-        x_centered = x - np.mean(x)
-        norm = np.sum(x_centered**2)
-        if norm == 0: 
-            return np.zeros(len(x))
-        corr = np.correlate(x_centered, x_centered, mode='full')
-        return corr[len(corr)//2:] / norm
-
-    autocorr_values = acf(cadena)
+    # 3. Función ACF
+    autocorr_values = acf_helper(cadena)
+    
+    # Limitamos los ejes
     limit = min(max_lag, len(autocorr_values))
     lags = np.arange(limit)
     autocorr_values = autocorr_values[:limit]
 
-    # 5. Pintamos la gráfica
-    plt.figure(figsize=(8, 5))
-    plt.plot(lags, autocorr_values, marker='o', linestyle='-', color='#1f77b4', markersize=5)
-    plt.axhline(0, color='red', linestyle='--', alpha=0.5)
+    # --- CONFIGURACIÓN DE ESTILO PROFESIONAL/CIENTÍFICO ---
+    # Usamos rcParams.update({}) de forma temporal solo para esta figura.
+    # Esto asegura tipografía clara y tamaños legibles para impresión TFG.
     
-    plt.title("Decaimiento de Autocorrelación entre muestras", fontsize=14)
-    plt.xlabel("Distancia en la cadena (Lag $t$)", fontsize=12)
-    plt.ylabel("Autocorrelación $C(t)$", fontsize=12)
-    plt.grid(True, alpha=0.3)
-    
-    plt.tight_layout()
-    plt.savefig(filename, dpi=300)
-    plt.close()
-    print(f"[ÉXITO] Gráfica guardada como {filename}")
+    with plt.rc_context({
+        'font.size': 12,
+        'axes.labelsize': 14,
+        'axes.titlesize': 16,
+        'xtick.labelsize': 11,
+        'ytick.labelsize': 11,
+        'axes.labelpad': 10,
+        'axes.titlepad': 20,
+        'grid.color': "#DDDDDD", # Gris muy sutil y claro para la cuadrícula
+        'grid.alpha': 0.6,
+        'axes.spines.top': False, # Moderno/Limpio: quitar borde superior
+        'axes.spines.right': False, # Moderno/Limpio: quitar borde derecho
+    }):
+        # Usamos un color oscuro/negro para línea/puntos (evitamos el azul chillón)
+        color_data = "#111111" # Casi negro nítido
+        color_zero = "#777777" # Gris medio sutil para la referencia
+
+        plt.figure(figsize=(9, 6), dpi=100) # Un poco más grande para tesis
+
+        # Pintamos datos (línea nítida y puntos pequeños)
+        plt.plot(lags, autocorr_values, marker='o', linestyle='-', color=color_data, markersize=4.5, linewidth=1.2)
+        
+        # Línea de referencia cero: sutil, gris y discontinua
+        plt.axhline(0, color=color_zero, linestyle='--', linewidth=1, alpha=0.9)
+        
+        # Título personalizado incluyendo el nombre del benchmark
+        plt.title(f"Decaimiento de Autocorrelación: {benchmark_name}")
+        
+        # Etiquetas en español con notación matemática (legibles y profesionales)
+        plt.xlabel("Distancia en la cadena (Lag $t$, pasos cadena)")
+        plt.ylabel("Autocorrelación $C(t)$ (Energía)")
+        
+        plt.grid(True)
+        plt.tight_layout() # Asegura que los márgenes se respeten
+        
+        # Guardamos en alta calidad (300 dpi es estándar para impresión)
+        plt.savefig(filename, dpi=300)
+        plt.close()
+        print(f"[ÉXITO] Gráfica guardada como '{filename}'")
