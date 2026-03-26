@@ -31,7 +31,7 @@ def run_jastrow_metropolis():
 
     sampler = nk.sampler.MetropolisLocal(
         hi,
-        n_chains=16, # Número de exploradores en paralelo
+        n_chains=1, # Número de exploradores en paralelo
         sweep_size=1   # Muestras que se dejan pasar entre extracciones
     )
     
