@@ -93,7 +93,7 @@ def run_jastrow_metropolis():
         H=H, 
         benchmark_name=benchmark_title, 
         max_lag=40, 
-        filename="autocorr_02_MeanField.png" 
+        filename="autocorr_02_MeanField.2.png" 
         )    
 
 if __name__ == "__main__":

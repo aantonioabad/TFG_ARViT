@@ -100,7 +100,7 @@ def run_vit_metropolis():
         H=H, 
         benchmark_name=benchmark_title, 
         max_lag=40, 
-        filename="autocorr_04_ViT.png" 
+        filename="autocorr_04_ViT.2.png" 
         ) 
 
 if __name__ == "__main__":

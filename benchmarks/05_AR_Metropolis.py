@@ -99,7 +99,7 @@ def run_arnn_metropolis():
         H=H, 
         benchmark_name=benchmark_title, 
         max_lag=40, 
-        filename="autocorr_05_AR_Metropolis.png" 
+        filename="autocorr_05_AR_Metropolis.2.png" 
     ) 
     
 
