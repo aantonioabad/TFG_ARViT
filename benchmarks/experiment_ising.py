@@ -106,10 +106,10 @@ def run_netket_experiment(N, J, dimensions, phase_name):
 
 if __name__ == "__main__":
     # --- 1D CHAIN (N=10) ---
-    run_netket_experiment(N=10, J=-1.0, dimensions=1, phase_name="FM")
-    run_netket_experiment(N=10, J=1.0,  dimensions=1, phase_name="AFM")
+    #run_netket_experiment(N=10, J=-1.0, dimensions=1, phase_name="FM")
+    #run_netket_experiment(N=10, J=1.0,  dimensions=1, phase_name="AFM")
 
     # --- 2D GRID (N=16, cuadrado de 4x4) ---
-    # APAGADO PARA PRUEBAS 1D
-    # run_netket_experiment(N=16, J=-1.0, dimensions=2, phase_name="FM")
-    # run_netket_experiment(N=16, J=1.0,  dimensions=2, phase_name="AFM")
+
+     run_netket_experiment(N=16, J=-1.0, dimensions=2, phase_name="FM")
+     run_netket_experiment(N=16, J=1.0,  dimensions=2, phase_name="AFM")
