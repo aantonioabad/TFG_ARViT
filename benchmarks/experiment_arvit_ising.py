@@ -96,9 +96,9 @@ def run_arvit_ising_experiment(N, J, dimensions, phase_name):
 if __name__ == "__main__":
     
     # --- MODELO 1D (Cadena de 10 espines) ---
-    run_arvit_ising_experiment(N=10, J=-1.0, dimensions=1, phase_name="FM")
-    run_arvit_ising_experiment(N=10, J=1.0,  dimensions=1, phase_name="AFM")
+    #run_arvit_ising_experiment(N=10, J=-1.0, dimensions=1, phase_name="FM")
+    #run_arvit_ising_experiment(N=10, J=1.0,  dimensions=1, phase_name="AFM")
 
     # --- MODELO 2D (Cuadrícula de 4x4 = 16 espines) ---
-    #run_arvit_ising_experiment(N=16, J=-1.0, dimensions=2, phase_name="FM")
-    #run_arvit_ising_experiment(N=16, J=1.0,  dimensions=2, phase_name="AFM")
+    run_arvit_ising_experiment(N=16, J=-1.0, dimensions=2, phase_name="FM")
+    run_arvit_ising_experiment(N=16, J=1.0,  dimensions=2, phase_name="AFM")
