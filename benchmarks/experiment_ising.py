@@ -13,15 +13,15 @@ sys.path.append(parent_dir)
 
 os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 
-# Importamos tu Hamiltoniano y tus utilidades (Asegúrate de importar la función de la gráfica)
+
 from physics.ising_netket import get_Ising
 from physics.utils import BestIterKeeper
-# Si le cambiaste el nombre a la profesional, pon: plot_markov_autocorrelation_professional
+
 from physics.utils import plot_markov_autocorrelation 
 
 def run_netket_experiment(N, J, dimensions, phase_name):
     print(f"\n{'='*65}")
-    print(f">>> EXPERIMENTO NETKET PURO: Ising {dimensions}D | Fase: {phase_name} | N={N} | J={J}")
+    print(f">>> EXPERIMENTO NETKET: Ising {dimensions}D | Fase: {phase_name} | N={N} | J={J}")
     print(f"{'='*65}")
 
     # 1. Obtenemos el Hilbert y el Hamiltoniano nativo de NetKet
