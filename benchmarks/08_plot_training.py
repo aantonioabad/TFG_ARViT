@@ -62,7 +62,7 @@ def plot_benchmark_training(log_filename, benchmark_name, output_filename):
 
 if __name__ == "__main__":
     print("\n--- GENERANDO GRÁFICAS DE ENTRENAMIENTO DE BENCHMARKS ---\n")
-    directorio_logs = "graficas y resultados modelos"
+    directorio_logs = "/content/drive/MyDrive/TFG_ARViT/graficas y resultados modelos/"
     # Formato: "nombre_del_archivo_sin_extension": "Título para la Gráfica"
     logs_a_procesar = {
         "resultado_benchmark_02_Jastrow.log": "02 - Jastrow (Mean Field) + Metropolis",
