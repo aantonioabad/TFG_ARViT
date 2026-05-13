@@ -6,8 +6,12 @@ import matplotlib.pyplot as plt
 def plot_benchmark_training(log_filename, benchmark_name, output_filename):
     print(f"Generando gráfica de convergencia para: {benchmark_name}...")
     
-    # 1. Leer el archivo log
-    log_path = f"{log_filename}.log"
+    # 1. Leer el archivo log (arreglado para evitar el doble .log)
+    if log_filename.endswith(".log"):
+        log_path = log_filename
+    else:
+        log_path = f"{log_filename}.log"
+        
     if not os.path.exists(log_path):
         print(f"  [ERROR] No se encuentra el archivo {log_path}. Comprueba el nombre exacto.")
         return
@@ -39,12 +43,13 @@ def plot_benchmark_training(log_filename, benchmark_name, output_filename):
     }):
         plt.figure(figsize=(9, 6), dpi=100)
 
-        # Pintamos la curva de aprendizaje del modelo
         plt.plot(iters, energy_mean, color="#111111", label="Energía (Loss)", linewidth=1.5)
         
         plt.title(f"Entrenamiento: {benchmark_name}")
         plt.xlabel("Iteración de Entrenamiento (Épocas)")
-        plt.ylabel("Energía del Sistema $\langle H \\rangle$")
+        
+        # ARREGLADO: La 'r' inicial indica a Python que es un texto crudo para LaTeX
+        plt.ylabel(r"Energía del Sistema $\langle H \rangle$")
         
         plt.legend(loc="upper right", frameon=True, shadow=True)
         plt.grid(True)
@@ -53,6 +58,7 @@ def plot_benchmark_training(log_filename, benchmark_name, output_filename):
         plt.savefig(output_filename, dpi=300)
         plt.close()
         print(f"  [ÉXITO] Gráfica guardada como '{output_filename}'\n")
+
 
 if __name__ == "__main__":
     print("\n--- GENERANDO GRÁFICAS DE ENTRENAMIENTO DE BENCHMARKS ---\n")
