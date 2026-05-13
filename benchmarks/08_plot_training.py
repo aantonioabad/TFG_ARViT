@@ -3,25 +3,28 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-def plot_benchmark_training(log_filename, benchmark_name, output_filename):
-    print(f"Generando gráfica de convergencia para: {benchmark_name}...")
+def ema_smooth(scalars, weight=0.85):
+    """Aplica un Suavizado Exponencial (estilo TensorBoard) a los datos"""
+    if not scalars: return []
+    last = scalars[0]
+    smoothed = []
+    for point in scalars:
+        smoothed_val = last * weight + (1 - weight) * point
+        smoothed.append(smoothed_val)
+        last = smoothed_val
+    return smoothed
+
+def plot_benchmark_training(log_path, benchmark_name, output_filename, exact_energy=None):
+    print(f"Generando gráfica HD para: {benchmark_name}...")
     
-    # 1. Leer el archivo log (arreglado para evitar el doble .log)
-    if log_filename.endswith(".log"):
-        log_path = log_filename
-    else:
-        log_path = f"{log_filename}.log"
-        
     if not os.path.exists(log_path):
-        print(f"  [ERROR] No se encuentra el archivo {log_path}. Comprueba el nombre exacto.")
+        print(f"  [ERROR] No se encuentra el archivo {log_path}.")
         return
 
     with open(log_path, 'r') as f:
         data = json.load(f)
         
-    # 2. Extraer las iteraciones y la energía media
     iters = data['Energy']['iters']
-    
     energy_mean = []
     for e in data['Energy']['Mean']:
         if isinstance(e, dict):
@@ -29,43 +32,58 @@ def plot_benchmark_training(log_filename, benchmark_name, output_filename):
         else:
             energy_mean.append(float(np.real(e)))
 
-    # 3. Estilo Profesional para el TFG
+    # Aplicamos el filtro de suavizado
+    smoothed_energy = ema_smooth(energy_mean, weight=0.85)
+
+    # Estética Premium
     with plt.rc_context({
         'font.size': 12,
         'axes.labelsize': 14,
         'axes.titlesize': 16,
+        'axes.titleweight': 'bold',
         'xtick.labelsize': 11,
         'ytick.labelsize': 11,
-        'grid.color': "#DDDDDD",
+        'grid.color': "#CCCCCC",
         'grid.alpha': 0.6,
         'axes.spines.top': False,
         'axes.spines.right': False,
     }):
-        plt.figure(figsize=(9, 6), dpi=100)
+        # Hacemos la imagen un poco más ancha para formato documento
+        plt.figure(figsize=(10, 6), dpi=150)
 
-        plt.plot(iters, energy_mean, color="#111111", label="Energía (Loss)", linewidth=1.5)
+        # 1. Los datos puros (fondo transparente)
+        plt.plot(iters, energy_mean, color="#4A90E2", alpha=0.35, linewidth=1.5, label="Energía VMC (Raw)")
         
-        plt.title(f"Entrenamiento: {benchmark_name}")
+        # 2. La tendencia suavizada (línea gruesa principal)
+        plt.plot(iters, smoothed_energy, color="#0033A0", linewidth=2.5, label="Tendencia (Suavizada)")
+        
+        # 3. La línea de Verdad Fundamental (Límite teórico)
+        if exact_energy is not None:
+            plt.axhline(exact_energy, color="#D0021B", linestyle="--", linewidth=2, 
+                        label=f"Energía Exacta ({exact_energy:.4f})")
+
+        plt.title(f"Convergencia de Energía\n{benchmark_name}", pad=15)
         plt.xlabel("Iteración de Entrenamiento (Épocas)")
-        
-        # ARREGLADO: La 'r' inicial indica a Python que es un texto crudo para LaTeX
         plt.ylabel(r"Energía del Sistema $\langle H \rangle$")
         
-        plt.legend(loc="upper right", frameon=True, shadow=True)
-        plt.grid(True)
+        # Leyenda estilizada
+        plt.legend(loc="upper right", frameon=True, shadow=True, fancybox=True, borderpad=1)
+        plt.grid(True, linestyle='--')
         plt.tight_layout()
         
-        plt.savefig(output_filename, dpi=300)
+        # Guardamos en alta calidad
+        plt.savefig(output_filename, dpi=300, bbox_inches='tight')
         plt.close()
         print(f"  [ÉXITO] Gráfica guardada como '{output_filename}'\n")
 
 if __name__ == "__main__":
-    print("\n--- GENERANDO GRÁFICAS DE ENTRENAMIENTO DE BENCHMARKS ---\n")
+    print("\n--- GENERANDO GRÁFICAS DE ENTRENAMIENTO NIVEL DIOS ---\n")
     
-    # Ruta absoluta a tu Drive asegurando que acabe en barra (/)
     directorio_logs = "/content/drive/MyDrive/TFG_ARViT/graficas y resultados modelos/"
     
-    # Diccionario con los nombres EXACTOS de tus archivos (fíjate en el LSTM)
+    # Hemos añadido la constante mágica para N=10 que calculaste antes
+    E_EXACT_10 = -12.784906 
+    
     logs_a_procesar = {
         "resultado_benchmark_02_Jastrow.log": "02 - Jastrow (Mean Field) + Metropolis",
         "resultado_benchmark_03_LSTM.log": "03 - LSTM + Metropolis",
@@ -76,14 +94,10 @@ if __name__ == "__main__":
     }
 
     for log_file, title in logs_a_procesar.items():
-        # Concatenamos a la fuerza la ruta y el archivo
         ruta_completa = directorio_logs + log_file
-        
-        # Quitamos la extensión .log para crear el nombre del PNG
         nombre_base = log_file.replace(".log", "")
+        # Le añado "_HD" al final para no sobreescribir las anteriores
+        png_name = directorio_logs + f"training_{nombre_base}_HD.png" 
         
-        # Le decimos que guarde el PNG también dentro de la carpeta de Drive
-        png_name = directorio_logs + f"training_{nombre_base}.png"
-        
-        # Llamamos a la función
-        plot_benchmark_training(ruta_completa, title, png_name)
+        # Le pasamos la energía exacta a la función
+        plot_benchmark_training(ruta_completa, title, png_name, exact_energy=E_EXACT_10)
