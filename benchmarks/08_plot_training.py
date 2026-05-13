@@ -59,20 +59,31 @@ def plot_benchmark_training(log_filename, benchmark_name, output_filename):
         plt.close()
         print(f"  [ÉXITO] Gráfica guardada como '{output_filename}'\n")
 
-
 if __name__ == "__main__":
     print("\n--- GENERANDO GRÁFICAS DE ENTRENAMIENTO DE BENCHMARKS ---\n")
+    
+    # Ruta absoluta a tu Drive asegurando que acabe en barra (/)
     directorio_logs = "/content/drive/MyDrive/TFG_ARViT/graficas y resultados modelos/"
-    # Formato: "nombre_del_archivo_sin_extension": "Título para la Gráfica"
+    
+    # Diccionario con los nombres EXACTOS de tus archivos (fíjate en el LSTM)
     logs_a_procesar = {
         "resultado_benchmark_02_Jastrow.log": "02 - Jastrow (Mean Field) + Metropolis",
-        "resultado_benchmark_03_LSTMN.log": "03 - LSTMN + Metropolis",
+        "resultado_benchmark_03_LSTM.log": "03 - LSTM + Metropolis",
         "resultado_benchmark_04_ViT.log": "04 - ViT Estándar + Metropolis",
-        "resultado_benchmark_05_AR.log": "05 - ARNN + Metropolis",
-        "resultado_benchmark_06_ARNN.log": "06 - ARNN Causal + Direct Sampling",
-        "resultado_benchmark_06_ARViT.log": "06 - ARViT Causal + Direct Sampling"
+        "resultado_benchmark_05_AR.log": "05 - ARNNDense + Metropolis",
+        "resultado_benchmark_06_ARNN.log": "06 - ARNNDense + Direct Sampling",
+        "resultado_benchmark_06_ARViT.log": "06 - ARViT + Direct Sampling",
     }
 
     for log_file, title in logs_a_procesar.items():
-        png_name = f"training_{log_file}.png"
-        plot_benchmark_training(log_file, title, png_name)
+        # Concatenamos a la fuerza la ruta y el archivo
+        ruta_completa = directorio_logs + log_file
+        
+        # Quitamos la extensión .log para crear el nombre del PNG
+        nombre_base = log_file.replace(".log", "")
+        
+        # Le decimos que guarde el PNG también dentro de la carpeta de Drive
+        png_name = directorio_logs + f"training_{nombre_base}.png"
+        
+        # Llamamos a la función
+        plot_benchmark_training(ruta_completa, title, png_name)
