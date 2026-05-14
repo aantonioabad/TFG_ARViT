@@ -2,11 +2,10 @@ import json
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
 from matplotlib.ticker import MaxNLocator
 
-def plot_comparativa_broken_axis(log_files_dict, directorio, output_filename, exact_energy):
-    print("Generando comparativa avanzada (Eje Roto) para la memoria...")
+def plot_comparativa_limpia(log_files_dict, directorio, output_filename, exact_energy):
+    print("Generando comparativa continua con submuestreo...")
 
     # ESTÉTICA DE ARTÍCULO CIENTÍFICO (LaTeX-like)
     with plt.rc_context({
@@ -19,15 +18,8 @@ def plot_comparativa_broken_axis(log_files_dict, directorio, output_filename, ex
         'axes.spines.top': True,
         'axes.spines.right': True,
     }):
-        # Creamos la figura y partimos el espacio (Ratio 3 a 1)
-        # El 75% de la imagen será para las iteraciones 0-300, el 25% para 300-1000
-        fig = plt.figure(figsize=(9, 5), dpi=150)
-        gs = gridspec.GridSpec(1, 2, width_ratios=[3, 1], wspace=0.05)
+        fig, ax = plt.subplots(figsize=(8, 5), dpi=150)
 
-        ax1 = fig.add_subplot(gs[0])
-        ax2 = fig.add_subplot(gs[1], sharey=ax1)
-
-        # Iteramos y dibujamos cada modelo en ambos paneles
         for filename, info in log_files_dict.items():
             ruta = os.path.join(directorio, filename)
             if not os.path.exists(ruta):
@@ -37,77 +29,65 @@ def plot_comparativa_broken_axis(log_files_dict, directorio, output_filename, ex
             with open(ruta, 'r') as f:
                 data = json.load(f)
 
-            iters = data['Energy']['iters']
-            energy_mean = []
+            iters_full = np.array(data['Energy']['iters'])
+            
+            energy_full = []
             for e in data['Energy']['Mean']:
                 if isinstance(e, dict):
-                    energy_mean.append(e.get('real', 0.0))
+                    energy_full.append(e.get('real', 0.0))
                 else:
-                    energy_mean.append(float(np.real(e)))
+                    energy_full.append(float(np.real(e)))
+            energy_full = np.array(energy_full)
 
-            # ax1 tiene el label para la leyenda, ax2 no lo necesita
-            ax1.plot(iters, energy_mean, color=info['color'], linewidth=1.3, label=info['label'])
-            ax2.plot(iters, energy_mean, color=info['color'], linewidth=1.3)
+            # --- LA MAGIA DEL SUBMUESTREO ---
+            # 1. Cogemos todas las épocas hasta la 400 (pasos de 1 en 1)
+            idx_inicio = np.where(iters_full <= 400)[0]
+            
+            # 2. A partir de la 400, cogemos 1 de cada 25 épocas (pasos grandes)
+            idx_final = np.where(iters_full > 400)[0][::25] 
+            
+            # 3. Unimos los índices
+            idx_combinados = np.concatenate((idx_inicio, idx_final))
+            
+            iters_plot = iters_full[idx_combinados]
+            energy_plot = energy_full[idx_combinados]
+
+            # Pintamos la línea con los datos filtrados
+            ax.plot(iters_plot, energy_plot, color=info['color'], linewidth=1.5, label=info['label'])
 
         # LÍNEA EXACTA
         color_exact = "#F1948A" # Salmón pastel
-        ax1.axhline(exact_energy, color=color_exact, linestyle="--", linewidth=1.8, label=f"Energía Exacta ({exact_energy:.2f})")
-        ax2.axhline(exact_energy, color=color_exact, linestyle="--", linewidth=1.8)
-
-        # APLICAMOS EL ZOOM Y LA COMPRESIÓN
-        ax1.set_xlim(0, 300)
-        ax2.set_xlim(300, 1000)
-
-        # EFECTO DE EJE ROTO (Ocultar bordes interiores)
-        ax1.spines['right'].set_visible(False)
-        ax2.spines['left'].set_visible(False)
-        ax1.yaxis.tick_left()
-        ax2.tick_params(labelleft=False, left=False) # Quita los números del eje Y de la derecha
-
-        # MARCAS DIAGONALES (//)
-        d = .015 # Tamaño de las marcas de corte
-        kwargs = dict(transform=ax1.transAxes, color='#999999', clip_on=False, linewidth=1.2)
-        ax1.plot((1-d, 1+d), (-d, +d), **kwargs)     # Abajo derecha
-        ax1.plot((1-d, 1+d), (1-d, 1+d), **kwargs)   # Arriba derecha
-
-        kwargs.update(transform=ax2.transAxes)
-        d_x = d * 3 # Ajuste geométrico por el ancho del panel derecho
-        ax2.plot((-d_x, +d_x), (-d, +d), **kwargs)   # Abajo izquierda
-        ax2.plot((-d_x, +d_x), (1-d, 1+d), **kwargs) # Arriba izquierda
+        ax.axhline(exact_energy, color=color_exact, linestyle="--", linewidth=1.8, 
+                   label=f"Energía Exacta ({exact_energy:.2f})")
 
         # ETIQUETAS Y TÍTULOS
-        ax1.set_ylabel(r"Parámetro de control, $H$")
+        ax.set_title("COMPARATIVA DE ARQUITECTURAS", pad=15)
+        ax.set_xlabel("Épocas")
+        ax.set_ylabel(r"Parámetro de control, $H$")
         
-        # Centramos el texto "Épocas" para que abarque los dos gráficos
-        ax1.set_xlabel("Épocas")
-        ax1.xaxis.set_label_coords(0.66, -0.1) 
+        # MARCAS DEL EJE X PERSONALIZADAS
+        # Alta resolución al principio (0, 100, 200, 300, 400) y baja al final (700, 1000)
+        ax.set_xticks([0, 100, 200, 300, 400, 700, 1000])
+        ax.set_xlim(0, 1000)
 
-        # Título principal
-        fig.suptitle("COMPARATIVA DE ARQUITECTURAS", fontsize=11, fontweight='bold', y=0.96)
+        # CUADRÍCULA
+        ax.grid(True, linestyle='-', color='#E5E8E8', linewidth=1.0)
+        ax.yaxis.set_major_locator(MaxNLocator(nbins=12))
 
-        # CUADRÍCULAS (Gris pastel continuas)
-        ax1.grid(True, linestyle='-', color='#E5E8E8', linewidth=1.0)
-        ax2.grid(True, linestyle='-', color='#E5E8E8', linewidth=1.0)
-        
-        # Resolución máxima en el eje Y
-        ax1.yaxis.set_major_locator(MaxNLocator(nbins=12))
-
-        # LEYENDA (Sin caja, tamaño pequeño)
-        ax1.legend(loc="upper right", frameon=False, fontsize=9)
+        # LEYENDA
+        ax.legend(loc="upper right", frameon=False, fontsize=9)
 
         plt.tight_layout()
-        plt.subplots_adjust(bottom=0.15) # Espacio extra abajo
         plt.savefig(output_filename, dpi=300, bbox_inches='tight')
         plt.close()
         print(f"  [ÉXITO] Gráfica guardada como '{output_filename}'\n")
 
 if __name__ == "__main__":
-    print("\n--- GENERANDO COMPARATIVA DEFINITIVA ---\n")
+    print("\n--- GENERANDO COMPARATIVA DEFINITIVA (EJE ÚNICO) ---\n")
     
     directorio_logs = "/content/drive/MyDrive/TFG_ARViT/graficas y resultados modelos/"
     E_EXACTA = -12.32525024471575
     
-    # Diccionario con los 3 modelos clave y sus colores pastel asignados
     modelos_a_comparar = {
         "resultado_benchmark_02_Jastrow.log": {
             "label": "Jastrow + Metropolis", 
@@ -119,10 +99,10 @@ if __name__ == "__main__":
         },
         "resultado_benchmark_06_ARViT.log": {
             "label": "ARViT + Directo", 
-            "color": "#5499C7"  # Azul Acero (Más nítido para resaltar)
+            "color": "#5499C7"  # Azul Acero
         }
     }
 
-    archivo_salida = directorio_logs + "training_Comparativa_BrokenAxis.png"
+    archivo_salida = directorio_logs + "training_Comparativa_Continua.png"
     
-    plot_comparativa_broken_axis(modelos_a_comparar, directorio_logs, archivo_salida, E_EXACTA)
+    plot_comparativa_limpia(modelos_a_comparar, directorio_logs, archivo_salida, E_EXACTA)
