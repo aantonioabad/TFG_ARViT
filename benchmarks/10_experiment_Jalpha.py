@@ -7,104 +7,95 @@ import netket as nk
 import optax
 import scipy.sparse.linalg
 
-# Ajuste de rutas para importar tus módulos
-current_dir = os.path.dirname(os.path.abspath(__file__))
+# Ajuste de rutas para tus módulos
+current_dir = os.path.dirname(os.path.abspath(__file__)) if '__file__' in globals() else os.getcwd()
 parent_dir = os.path.dirname(current_dir)
 sys.path.append(parent_dir)
 
-# Importamos tu función, tu modelo y las utilidades...
-from physics.hamiltonian import get_Hamiltonian
+from physics.ising_netket import get_Hamiltonian
 from models.vitB import ARSpinViT_Causal
 from physics.utils import BestIterKeeper, plot_markov_autocorrelation
 
-def run_long_range_sweep(N=10, alpha=6.0, J_values=None):
-    if J_values is None:
-        J_values = [-4.0, -3.0, 1.0, 3.0, 7.0]
+def run_total_rebuild(N=10):
+    # Ruta a tu Drive (con el espacio que detectamos antes)
+    drive_dir = "/content/drive/MyDrive/TFG_ARViT/Fase_ J_alpha/"
+    os.makedirs(drive_dir, exist_ok=True)
 
-    print(f"\n{'='*70}")
-    print(f" INICIANDO BARRIDO LONG-RANGE | N={N} | alpha={alpha}")
-    print(f" Valores de J a evaluar: {J_values}")
-    print(f"{'='*70}\n")
+    # Definimos el mapa maestro de experimentos (15 puntos en total)
+    experimentos = {
+        6.0: [-4.0, -3.0, 1.0, 3.0, 7.0],      # Caso local
+        2.5: [-4.0, -2.0, 1.0, 4.75, 7.0],    # Caso medio
+        1.0: [-2.0, -0.8, 0.5, 7.0, 12.0]     # Caso largo alcance (estirado)
+    }
 
-    # Diccionario para guardar las energías exactas y usarlas en las gráficas luego
-    exact_energies = {}
+    # Diccionario para guardar las energías exactas que calculemos
+    exact_energies_summary = {alpha: {} for alpha in experimentos.keys()}
 
-    for J in J_values:
-        print(f"\n>>> EXPERIMENTO: Fase con J = {J} <<<")
-        
-        # 1. Definimos el espacio de Hilbert y el Hamiltoniano
-        hi = nk.hilbert.Spin(s=1/2, N=N)
-        H = get_Hamiltonian(N=N, J=J, alpha=alpha, hilbert=hi)
+    print(f"\n{'='*80}")
+    print(f"🚀 REHACIENDO TODO: 15 SIMULACIONES (3 Alphas x 5 Js)")
+    print(f"💾 Destino: {drive_dir}")
+    print(f"{'='*80}\n")
 
-        # 2. Calculamos la Energía Exacta (Verdad Fundamental)
-        H_sparse = H.to_sparse()
-        evals, evecs = scipy.sparse.linalg.eigsh(H_sparse, k=1, which="SA")
-        E_exact = float(evals[0])
-        psi_exact = evecs[:, 0] # Guardamos el vector exacto para la fidelidad
-        exact_energies[J] = E_exact
-        print(f"  [+] Energía Exacta Teórica: {E_exact:.6f}")
+    for alpha in [6.0, 2.5, 1.0]: 
+        for J in experimentos[alpha]:
+            print(f"\n>>> TRABAJANDO EN: J={J} | alpha={alpha} <<<")
+            
+            # 1. Hamiltoniano y Energía Exacta (ED)
+            hi = nk.hilbert.Spin(s=1/2, N=N)
+            H = get_Hamiltonian(N=N, J=J, alpha=alpha, hilbert=hi)
+            H_sparse = H.to_sparse()
+            evals, evecs = scipy.sparse.linalg.eigsh(H_sparse, k=1, which="SA")
+            E_exact = float(evals[0])
+            exact_energies_summary[alpha][J] = E_exact
+            print(f"  [+] Energía Exacta: {E_exact:.6f}")
 
-        # 3. Preparamos el ARViT y el Sampler Directo
-        model = ARSpinViT_Causal(hilbert=hi)
-        sampler = nk.sampler.ARDirectSampler(hi)
-        vstate = nk.vqs.MCState(sampler, model, n_samples=2048, seed=42)
-        
-        optimizer = optax.adam(learning_rate=0.001)
-        gs = nk.driver.VMC_SR(H, optimizer, variational_state=vstate, diag_shift=0.1)
+            # 2. Configuración del Modelo ARViT
+            model = ARSpinViT_Causal(hilbert=hi)
+            sampler = nk.sampler.ARDirectSampler(hi)
+            vstate = nk.vqs.MCState(sampler, model, n_samples=2048, seed=42)
+            
+            optimizer = optax.adam(learning_rate=0.001)
+            gs = nk.driver.VMC_SR(H, optimizer, variational_state=vstate, diag_shift=0.1)
+            keeper = BestIterKeeper(Hamiltonian=H, N=N, baseline=1e-6)
 
-        # 4. Keeper para guardar la mejor iteración
-        keeper = BestIterKeeper(Hamiltonian=H, N=N, baseline=1e-6)
+            # 3. Nombres de archivos solicitados
+            # Log de Netket
+            base_log_name = os.path.join(drive_dir, f"resultado_LR_alpha{alpha}_J{J}")
+            log = nk.logging.JsonLog(base_log_name, save_params=False)
+            
+            # Gráfica de Autocorrelación: autocorr_ARViT_J_{J}_alpha_{alpha}.png
+            autocorr_img = os.path.join(drive_dir, f"autocorr_ARViT_J_{J}_alpha_{alpha}.png")
 
-        # 5. Nombre del archivo log dinámico
-        directorio_drive = "/content/drive/MyDrive/TFG_ARViT/Fase_ J_alpha/"
-        log_name = directorio_drive + f"resultado_LR_alpha{alpha}_J{J}.log"
-        log = nk.logging.JsonLog(log_name, save_params=False)
+            # 4. Ejecución del Entrenamiento
+            print(f"  [+] Entrenando 500 épocas...")
+            start_time = time.time()
+            gs.run(n_iter=500, out=log, show_progress=True, callback=keeper.update)
+            jax.block_until_ready(vstate.variables)
+            
+            # 5. Generar Autocorrelación (con la red entrenada)
+            vstate.parameters = keeper.best_state.parameters
+            print(f"  [+] Generando: {os.path.basename(autocorr_img)}")
+            plot_markov_autocorrelation(
+                vstate=vstate, H=H, 
+                benchmark_name=f"ARViT (J={J}, alpha={alpha})", 
+                max_lag=40, filename=autocorr_img
+            )
+            
+            print(f"  [√] Finalizado en {time.time() - start_time:.1f}s")
+            print("-" * 60)
 
-        print("  [+] Entrenando ARViT (500 épocas)...")
-        start_time = time.time()
-        
-        # Ejecutamos el entrenamiento
-        gs.run(n_iter=500, out=log, show_progress=True, callback=keeper.update)
-        
-        jax.block_until_ready(vstate.variables)
-        end_time = time.time()
-
-        print("  [+] Restaurando la mejor iteración y calculando métricas...")
-        vstate.parameters = keeper.best_state.parameters
-        
-        # --- CÁLCULO DE MÉTRICAS FINALES ---
-        E_stat = vstate.expect(H)
-        tau_c = getattr(E_stat, "tau_corr", 0.0)
-        
-        # Fidelidad (Overlap con el estado exacto)
-        psi_vmc = vstate.to_array(normalize=True)
-        overlap = float(jnp.abs(jnp.vdot(psi_exact, psi_vmc))**2)
-
-        # 6. Resultados finales de este J
-        print(f"  [+] Tiempo de entrenamiento: {end_time - start_time:.2f} s")
-        print(f"  [+] Mejor Energía VMC      : {keeper.best_energy:.6f}")
-        print(f"  [+] Error Relativo         : {abs((keeper.best_energy - E_exact)/E_exact):.3%}")
-        print(f"  [+] Fidelidad (Overlap)    : {overlap:.6f}")
-        print(f"  [+] Autocorrelación tau    : {tau_c:.4f}")
-        
-        # --- GENERAMOS LA GRÁFICA DE AUTOCORRELACIÓN PARA ESTE J ---
-        plot_markov_autocorrelation(
-            vstate=vstate, 
-            H=H, 
-            benchmark_name=f"ARViT Long-Range (J = {J})", 
-            max_lag=40, 
-            filename=f"autocorr_LR_J_{J}.png"
-        )
-        print("-" * 70)
-
-    # Imprimimos un resumen final para que puedas copiar las energías exactas
-    print("\n" + "="*70)
-    print(" RESUMEN DE ENERGÍAS EXACTAS (Para tus scripts de gráficas)")
-    print("="*70)
-    for J, E in exact_energies.items():
-        print(f"J = {J:<5} -> E_exacta = {E:.6f}")
-    print("="*70 + "\n")
+    # 6. RESUMEN FINAL DE ENERGÍAS
+    print("\n" + "="*60)
+    print(" 📋 COPIA ESTE BLOQUE PARA TU SCRIPT 11 📋")
+    print("="*60)
+    print("exact_energies = {")
+    for a_val in exact_energies_summary:
+        print(f"    {a_val}: {{")
+        for j_val, e_val in exact_energies_summary[a_val].items():
+            print(f"        {j_val}: {e_val:.6f},")
+        print("    },")
+    print("}")
+    print("="*60 + "\n")
 
 if __name__ == "__main__":
-    
-    run_long_range_sweep(N=10, alpha=6.0, J_values=[-4.0, -3.0, 1.0, 3.0, 7.0])
+    run_total_rebuild(N=10)
