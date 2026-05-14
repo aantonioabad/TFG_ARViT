@@ -29,7 +29,7 @@ def plot_training(log_path, phase_name, output_filename, exact_energy, alpha, J)
     with plt.rc_context({'font.family': 'serif', 'font.size': 11, 'axes.spines.top': True, 'axes.spines.right': True}):
         fig, ax = plt.subplots(figsize=(8, 5), dpi=150)
         
-        # Gráfica con el valor de alpha en la leyenda, como pediste
+        # Gráfica con el valor de alpha en la leyenda
         ax.plot(iters, energy_mean, color="#7D3C98", linewidth=1.2, label=f"VMC (ARViT) | $\\alpha={alpha}$")
         ax.axhline(exact_energy, color="#F1948A", linestyle="--", linewidth=1.8, label=f"Energía Exacta ({exact_energy:.4f})")
 
@@ -50,33 +50,42 @@ if __name__ == "__main__":
     N = 10  # Número de espines para calcular la energía exacta
     drive_dir = "/content/drive/MyDrive/TFG_ARViT/Fase_ J_alpha/"
     
-    # Valores de J y alpha EXACTOS según tus capturas de pantalla
+    # El mapa completo de los 15 experimentos de la Gran Batalla
     experimentos = {
-        2.5: {
-            -4.0: "Fase FM", 
-            -2.0: "Crit FM", 
-             1.0: "Para", 
-             4.75: "Crit AFM", 
-             7.0: "Fase AFM"
-        },
         6.0: {
             -4.0: "Fase FM", 
-            -3.0: "Crit FM", 
-             1.0: "Para", 
-             3.0: "Crit AFM", 
+            -3.0: "Transición crítica FM", 
+             1.0: "Paramagnético", 
+             3.0: "Transición crítica AFM", 
              7.0: "Fase AFM"
+        },
+        2.5: {
+            -4.0: "Fase FM", 
+            -2.0: "Transición crítica FM", 
+             1.0: "Paramagnético", 
+             4.75: "Transición crítica AFM", 
+             7.0: "Fase AFM"
+        },
+        1.0: {
+            -2.0: "Fase FM", 
+            -0.8: "Transición crítica FM", 
+             0.5: "Paramagnético", 
+             7.0: "Transición crítica AFM", 
+             12.0: "Fase AFM"
         }
     }
 
     exact_energies_summary = {alpha: {} for alpha in experimentos.keys()}
 
-    print("\n--- CALCULANDO ENERGÍAS Y GENERANDO 10 GRÁFICAS INDIVIDUALES ---\n")
+    print("\n" + "="*70)
+    print("--- CALCULANDO ENERGÍAS Y GENERANDO LAS 15 GRÁFICAS INDIVIDUALES ---")
+    print("="*70 + "\n")
 
     for alpha, js_dict in experimentos.items():
         for J, titulo in js_dict.items():
             print(f"\n>>> Procesando J={J} | alpha={alpha} <<<")
             
-            # 1. Calcular la energía exacta sobre la marcha
+            # 1. Calcular la energía exacta sobre la marcha (Diagonalización Exacta)
             hi = nk.hilbert.Spin(s=1/2, N=N)
             H = get_Hamiltonian(N=N, J=J, alpha=alpha, hilbert=hi)
             H_sparse = H.to_sparse()
@@ -85,12 +94,12 @@ if __name__ == "__main__":
             exact_energies_summary[alpha][J] = E_exacta
             print(f"  [+] Energía Exacta Calculada: {E_exacta:.6f}")
 
-            # 2. Buscar el archivo de log correspondiente en Drive usando comodines
+            # 2. Buscar el archivo de log nuevo en Drive usando comodines
             patron_busqueda = os.path.join(drive_dir, f"resultado_LR_alpha{alpha}_J{J}*")
             archivos_encontrados = glob.glob(patron_busqueda)
             
             if not archivos_encontrados:
-                print(f"  [OMITIDO] No hay log de entrenamiento guardado para este punto.")
+                print(f"  [OMITIDO] No hay log de entrenamiento guardado para este punto. ¿Terminó la simulación?")
                 continue
                 
             ruta_log = archivos_encontrados[0]
@@ -101,9 +110,9 @@ if __name__ == "__main__":
             # 4. Generar la gráfica individual
             plot_training(ruta_log, titulo, png_name, exact_energy=E_exacta, alpha=alpha, J=J)
 
-    # 5. Imprimir el bloque de energías al final
+    # 5. Imprimir el bloque de energías al final como backup
     print("\n" + "="*50)
-    print(" ENERGÍAS EXACTAS CALCULADAS")
+    print("  RESUMEN DE ENERGÍAS EXACTAS CALCULADAS ")
     print("="*50)
     print("exact_energies = {")
     for alpha_val in exact_energies_summary:
