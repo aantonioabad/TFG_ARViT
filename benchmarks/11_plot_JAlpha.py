@@ -66,27 +66,27 @@ if __name__ == "__main__":
     
     directorio_logs = "/content/drive/MyDrive/TFG_ARViT/Fase_ J_alpha/"
     
-    # 2. LAS ENERGÍAS EXACTAS (Insertadas desde tu imagen)
+    # 2. LAS ENERGÍAS EXACTAS 
     exact_energies = {
-        -4.0: -51.733292,
-        -2.0: -26.603024,
-         1.0: -12.204841,
-         4.75: -41.702796,
-         7.0: -60.968720
+        -4.0: -41.307541,
+        -3.0: -31.342744,
+        1.0: -12.204841,
+        3.0: -30.418123,
+        7.0: -69.350307
     }
     
     # Mapeo de los valores de J a su nombre físico (para el título de la gráfica)
     experimentos = {
         -4.0: "J = -4.0 | Fase FM Profunda",
-        -2.0: "J = -2.0 | Transición Crítica FM",
-         1.0: "J =  1.0 | Fase Paramagnética (Desorden)",
-         4.75: "J =  4.75 | Transición Crítica AFM",
-         7.0: "J =  7.0 | Fase AFM Profunda"
+        -3.0: "J = -3.0 | Transición Crítica FM",
+        1.0: "J =  1.0 | Fase Paramagnética (Desorden)",
+        3.0: "J =  3.0 | Transición Crítica AFM",
+        7.0: "J =  7.0 | Fase AFM Profunda"
     }
 
     for J, titulo in experimentos.items():
         # Usamos glob para buscar el archivo ignorando si tiene un .log extra
-        patron_busqueda = os.path.join(directorio_logs, f"resultado_LR_alpha2.5_J{J}*")
+        patron_busqueda = os.path.join(directorio_logs, f"resultado_LR_alpha6.0_J{J}*")
         archivos_encontrados = glob.glob(patron_busqueda)
         
         if not archivos_encontrados:
@@ -97,7 +97,7 @@ if __name__ == "__main__":
         ruta_completa = archivos_encontrados[0]
         
         # Le decimos que guarde el PNG en tu misma carpeta Fase_J_alpha
-        png_name = os.path.join(directorio_logs, f"training_LR_J{J}_Paper.png")
+        png_name = os.path.join(directorio_logs, f"training_LR_J{J}_alpha6.0_Paper.png")
         
         # Obtenemos la energía exacta de nuestro diccionario
         E_exacta = exact_energies[J]

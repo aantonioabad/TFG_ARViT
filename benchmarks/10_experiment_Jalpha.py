@@ -56,7 +56,8 @@ def run_long_range_sweep(N=10, alpha=6.0, J_values=None):
         keeper = BestIterKeeper(Hamiltonian=H, N=N, baseline=1e-6)
 
         # 5. Nombre del archivo log dinámico
-        log_name = f"resultado_LR_alpha6.0_J{J}"
+        directorio_drive = "/content/drive/MyDrive/TFG_ARViT/Fase_ J_alpha/"
+        log_name = directorio_drive + f"resultado_LR_alpha{alpha}_J{J}.log"
         log = nk.logging.JsonLog(log_name, save_params=False)
 
         print("  [+] Entrenando ARViT (500 épocas)...")
