@@ -17,9 +17,9 @@ from physics.hamiltonian import get_Hamiltonian
 from models.vitB import ARSpinViT_Causal
 from physics.utils import BestIterKeeper, plot_markov_autocorrelation
 
-def run_long_range_sweep(N=10, alpha=2.5, J_values=None):
+def run_long_range_sweep(N=10, alpha=6.0, J_values=None):
     if J_values is None:
-        J_values = [-4.0, -2.0, 1.0, 4.75, 7.0]
+        J_values = [-4.0, -3.0, 1.0, 3.0, 7.0]
 
     print(f"\n{'='*70}")
     print(f" INICIANDO BARRIDO LONG-RANGE | N={N} | alpha={alpha}")
