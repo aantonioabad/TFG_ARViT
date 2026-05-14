@@ -63,7 +63,7 @@ if __name__ == "__main__":
     print("\n--- GENERANDO GRÁFICAS DEL DIAGRAMA DE FASES (LONG-RANGE) ---\n")
     
     # 1. RUTA: Asegúrate de que apunta a donde se guardan los logs
-    directorio_logs = "/content/drive/MyDrive/TFG_ARViT/graficas y resultados modelos/"
+    directorio_logs = "/content/drive/MyDrive/TFG_ARViT/Fase_J_alpha/"
     
 
     exact_energies = {
