@@ -1,5 +1,6 @@
 import json
 import os
+import glob
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
@@ -35,7 +36,7 @@ def plot_long_range_training(log_path, phase_name, output_filename, exact_energy
     }):
         fig, ax = plt.subplots(figsize=(8, 5), dpi=150)
 
-        # Colores: Usaremos un tono morado/índigo pastel muy elegante para diferenciarlo de los benchmarks
+        # Colores: Tono púrpura/índigo pastel para la serie Long-Range
         color_data = "#7D3C98"    # Púrpura pastel oscuro
         color_exact = "#F1948A"   # Salmón pastel
 
@@ -48,7 +49,7 @@ def plot_long_range_training(log_path, phase_name, output_filename, exact_energy
 
         ax.set_title(phase_name.upper(), pad=12)
         ax.set_xlabel("Épocas")
-        ax.set_ylabel(r"Valor Esperado de la Energía, $\langle H \rangle$")
+        ax.set_ylabel(r"Parámetro de control, $H$")
         
         ax.grid(True, linestyle='-', color='#E5E8E8', linewidth=1.0)
         ax.yaxis.set_major_locator(MaxNLocator(nbins=12))
@@ -62,16 +63,16 @@ def plot_long_range_training(log_path, phase_name, output_filename, exact_energy
 if __name__ == "__main__":
     print("\n--- GENERANDO GRÁFICAS DEL DIAGRAMA DE FASES (LONG-RANGE) ---\n")
     
-    # 1. RUTA: Asegúrate de que apunta a donde se guardan los logs
+    # 1. RUTA: Apuntando directamente a la subcarpeta que creaste
     directorio_logs = "/content/drive/MyDrive/TFG_ARViT/Fase_J_alpha/"
     
-
+    # 2. LAS ENERGÍAS EXACTAS (Insertadas desde tu imagen)
     exact_energies = {
-        -4.0:  -51.733292,  
-        -2.0: -26.603024,   
-         1.0: -12.204841,   
-         4.75: -41.702796,  
-         7.0: -60.968720    
+        -4.0: -51.733292,
+        -2.0: -26.603024,
+         1.0: -12.204841,
+         4.75: -41.702796,
+         7.0: -60.968720
     }
     
     # Mapeo de los valores de J a su nombre físico (para el título de la gráfica)
@@ -84,9 +85,18 @@ if __name__ == "__main__":
     }
 
     for J, titulo in experimentos.items():
-        nombre_log = f"resultado_LR_alpha2.5_J{J}.log"
-        ruta_completa = os.path.join(directorio_logs, nombre_log)
+        # Usamos glob para buscar el archivo ignorando si tiene un .log extra
+        patron_busqueda = os.path.join(directorio_logs, f"resultado_LR_alpha2.5_J{J}*")
+        archivos_encontrados = glob.glob(patron_busqueda)
         
+        if not archivos_encontrados:
+            print(f"  [ERROR] No se encuentra ningún archivo para J={J}. Patrón buscado: {patron_busqueda}")
+            continue
+            
+        # Cogemos el primer archivo que coincida
+        ruta_completa = archivos_encontrados[0]
+        
+        # Le decimos que guarde el PNG en tu misma carpeta Fase_J_alpha
         png_name = os.path.join(directorio_logs, f"training_LR_J{J}_Paper.png")
         
         # Obtenemos la energía exacta de nuestro diccionario
