@@ -105,5 +105,5 @@ def run_long_range_sweep(N=10, alpha=6.0, J_values=None):
     print("="*70 + "\n")
 
 if __name__ == "__main__":
-    # Lanzamos el barrido con los parámetros de Antonio
-    run_long_range_sweep(N=10, alpha=2.5, J_values=[-4.0, -2.0, 1.0, 4.75, 7.0])
+    
+    run_long_range_sweep(N=10, alpha=6.0, J_values=[-4.0, -3.0, 1.0, 3.0, 7.0])
