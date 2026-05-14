@@ -4,19 +4,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 
-def ema_smooth(scalars, weight=0.85):
-    """Suavizado para que la curva principal se vea limpia"""
-    if not scalars: return []
-    last = scalars[0]
-    smoothed = []
-    for point in scalars:
-        smoothed_val = last * weight + (1 - weight) * point
-        smoothed.append(smoothed_val)
-        last = smoothed_val
-    return smoothed
-
 def plot_benchmark_training(log_path, benchmark_name, output_filename, exact_energy):
-    print(f"Generando gráfica estilo Paper para: {benchmark_name}...")
+    print(f"Generando gráfica técnica para: {benchmark_name}...")
     
     if not os.path.exists(log_path):
         print(f"  [ERROR] No se encuentra el archivo {log_path}.")
@@ -33,52 +22,45 @@ def plot_benchmark_training(log_path, benchmark_name, output_filename, exact_ene
         else:
             energy_mean.append(float(np.real(e)))
 
-    smoothed_energy = ema_smooth(energy_mean, weight=0.85)
-
     # ESTÉTICA DE ARTÍCULO CIENTÍFICO (LaTeX-like)
     with plt.rc_context({
-        'font.family': 'serif', # Fuente tipo académica
+        'font.family': 'serif',
         'font.size': 11,
         'axes.labelsize': 12,
-        'axes.titlesize': 12,   # Título más pequeño
+        'axes.titlesize': 11,   # Título pequeño
         'xtick.labelsize': 10,
         'ytick.labelsize': 10,
-        # Dejamos la caja cerrada (típico de papers de física)
         'axes.spines.top': True,
         'axes.spines.right': True,
     }):
         fig, ax = plt.subplots(figsize=(8, 5), dpi=150)
 
-        # Paleta de colores Pastel
-        color_raw = "#A9CCE3"      # Azul pastel muy claro (datos puros)
-        color_smooth = "#5499C7"   # Azul pastel medio (tendencia principal)
-        color_exact = "#F1948A"    # Salmón/Rojo pastel (límite teórico)
+        # Colores Pastel Técnicos
+        color_data = "#5499C7"    # Azul acero pastel
+        color_exact = "#F1948A"   # Salmón/Rojo pastel
 
-        # 1. Datos crudos (semitransparentes y sin etiqueta para no ensuciar la leyenda)
-        ax.plot(iters, energy_mean, color=color_raw, alpha=0.6, linewidth=1.0)
+        # 1. Datos crudos (única línea de datos)
+        ax.plot(iters, energy_mean, color=color_data, linewidth=1.2, label="Energía VMC")
         
-        # 2. Tendencia principal (la que sale en la leyenda)
-        ax.plot(iters, smoothed_energy, color=color_smooth, linewidth=1.8, label="Energía VMC")
-        
-        # 3. Línea exacta en color pastel
+        # 2. Línea exacta
         ax.axhline(exact_energy, color=color_exact, linestyle="--", linewidth=1.8, 
-                    label="Energía Exacta")
+                    label=f"Energía Exacta ({exact_energy:.4f})")
 
-        # Título en MAYÚSCULAS y directo al grano
+        # Título en MAYÚSCULAS
         ax.set_title(benchmark_name.upper(), pad=12)
         
-        # Ejes actualizados
+        # Ejes
         ax.set_xlabel("Épocas")
-        ax.set_ylabel(r"Parámetro de control, Valor esperado $\langle H \rangle$")
+        ax.set_ylabel(r"Parámetro de control, $H$")
         
-        # Cuadrícula: Líneas continuas y en gris muy suave
+        # Cuadrícula continua gris suave
         ax.grid(True, linestyle='-', color='#E5E8E8', linewidth=1.0)
         
-        # Aumentar la resolución del eje Y (más marcas numéricas)
+        # Resolución del eje Y
         ax.yaxis.set_major_locator(MaxNLocator(nbins=12))
 
-        # Leyenda: Sin recuadro, letra más pequeña, colocada arriba a la derecha
-        ax.legend(loc="upper right", frameon=False, fontsize=10)
+        # Leyenda minimalista
+        ax.legend(loc="upper right", frameon=False, fontsize=9)
         
         plt.tight_layout()
         plt.savefig(output_filename, dpi=300, bbox_inches='tight')
@@ -86,12 +68,11 @@ def plot_benchmark_training(log_path, benchmark_name, output_filename, exact_ene
         print(f"  [ÉXITO] Gráfica guardada como '{output_filename}'\n")
 
 if __name__ == "__main__":
-    print("\n--- GENERANDO GRÁFICAS DE ENTRENAMIENTO (ESTILO PAPER) ---\n")
-    
+    print("\n--- GENERANDO GRÁFICAS DE ENTRENAMIENTO (DATOS CRUDOS) ---\n")
     
     directorio_logs = "/content/drive/MyDrive/TFG_ARViT/graficas y resultados modelos/"
     
-    
+    # Energía exacta proporcionada
     E_EXACTA = -12.32525024471575
     
     logs_a_procesar = {
@@ -106,7 +87,7 @@ if __name__ == "__main__":
     for log_file, title in logs_a_procesar.items():
         ruta_completa = directorio_logs + log_file
         nombre_base = log_file.replace(".log", "")
-        # Sufijo _Paper para diferenciarlas
-        png_name = directorio_logs + f"training_{nombre_base}_Paper.png" 
+        # Nuevo nombre para diferenciarlas
+        png_name = directorio_logs + f"training_{nombre_base}_Final.png" 
         
         plot_benchmark_training(ruta_completa, title, png_name, exact_energy=E_EXACTA)
