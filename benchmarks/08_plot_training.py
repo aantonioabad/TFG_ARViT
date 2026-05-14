@@ -2,9 +2,10 @@ import json
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
 
 def ema_smooth(scalars, weight=0.85):
-    """Aplica un Suavizado Exponencial (estilo TensorBoard) a los datos"""
+    """Suavizado para que la curva principal se vea limpia"""
     if not scalars: return []
     last = scalars[0]
     smoothed = []
@@ -14,8 +15,8 @@ def ema_smooth(scalars, weight=0.85):
         last = smoothed_val
     return smoothed
 
-def plot_benchmark_training(log_path, benchmark_name, output_filename, exact_energy=None):
-    print(f"Generando gráfica HD para: {benchmark_name}...")
+def plot_benchmark_training(log_path, benchmark_name, output_filename, exact_energy):
+    print(f"Generando gráfica estilo Paper para: {benchmark_name}...")
     
     if not os.path.exists(log_path):
         print(f"  [ERROR] No se encuentra el archivo {log_path}.")
@@ -32,57 +33,66 @@ def plot_benchmark_training(log_path, benchmark_name, output_filename, exact_ene
         else:
             energy_mean.append(float(np.real(e)))
 
-    # Aplicamos el filtro de suavizado
     smoothed_energy = ema_smooth(energy_mean, weight=0.85)
 
-    # Estética Premium
+    # ESTÉTICA DE ARTÍCULO CIENTÍFICO (LaTeX-like)
     with plt.rc_context({
-        'font.size': 12,
-        'axes.labelsize': 14,
-        'axes.titlesize': 16,
-        'axes.titleweight': 'bold',
-        'xtick.labelsize': 11,
-        'ytick.labelsize': 11,
-        'grid.color': "#CCCCCC",
-        'grid.alpha': 0.6,
-        'axes.spines.top': False,
-        'axes.spines.right': False,
+        'font.family': 'serif', # Fuente tipo académica
+        'font.size': 11,
+        'axes.labelsize': 12,
+        'axes.titlesize': 12,   # Título más pequeño
+        'xtick.labelsize': 10,
+        'ytick.labelsize': 10,
+        # Dejamos la caja cerrada (típico de papers de física)
+        'axes.spines.top': True,
+        'axes.spines.right': True,
     }):
-        # Hacemos la imagen un poco más ancha para formato documento
-        plt.figure(figsize=(10, 6), dpi=150)
+        fig, ax = plt.subplots(figsize=(8, 5), dpi=150)
 
-        # 1. Los datos puros (fondo transparente)
-        plt.plot(iters, energy_mean, color="#4A90E2", alpha=0.35, linewidth=1.5, label="Energía VMC (Raw)")
-        
-        # 2. La tendencia suavizada (línea gruesa principal)
-        plt.plot(iters, smoothed_energy, color="#0033A0", linewidth=2.5, label="Tendencia (Suavizada)")
-        
-        # 3. La línea de Verdad Fundamental (Límite teórico)
-        if exact_energy is not None:
-            plt.axhline(exact_energy, color="#D0021B", linestyle="--", linewidth=2, 
-                        label=f"Energía Exacta ({exact_energy:.4f})")
+        # Paleta de colores Pastel
+        color_raw = "#A9CCE3"      # Azul pastel muy claro (datos puros)
+        color_smooth = "#5499C7"   # Azul pastel medio (tendencia principal)
+        color_exact = "#F1948A"    # Salmón/Rojo pastel (límite teórico)
 
-        plt.title(f"Convergencia de Energía\n{benchmark_name}", pad=15)
-        plt.xlabel("Iteración de Entrenamiento (Épocas)")
-        plt.ylabel(r"Energía del Sistema $\langle H \rangle$")
+        # 1. Datos crudos (semitransparentes y sin etiqueta para no ensuciar la leyenda)
+        ax.plot(iters, energy_mean, color=color_raw, alpha=0.6, linewidth=1.0)
         
-        # Leyenda estilizada
-        plt.legend(loc="upper right", frameon=True, shadow=True, fancybox=True, borderpad=1)
-        plt.grid(True, linestyle='--')
+        # 2. Tendencia principal (la que sale en la leyenda)
+        ax.plot(iters, smoothed_energy, color=color_smooth, linewidth=1.8, label="Energía VMC")
+        
+        # 3. Línea exacta en color pastel
+        ax.axhline(exact_energy, color=color_exact, linestyle="--", linewidth=1.8, 
+                    label="Energía Exacta")
+
+        # Título en MAYÚSCULAS y directo al grano
+        ax.set_title(benchmark_name.upper(), pad=12)
+        
+        # Ejes actualizados
+        ax.set_xlabel("Épocas")
+        ax.set_ylabel(r"Parámetro de control, Valor esperado $\langle H \rangle$")
+        
+        # Cuadrícula: Líneas continuas y en gris muy suave
+        ax.grid(True, linestyle='-', color='#E5E8E8', linewidth=1.0)
+        
+        # Aumentar la resolución del eje Y (más marcas numéricas)
+        ax.yaxis.set_major_locator(MaxNLocator(nbins=12))
+
+        # Leyenda: Sin recuadro, letra más pequeña, colocada arriba a la derecha
+        ax.legend(loc="upper right", frameon=False, fontsize=10)
+        
         plt.tight_layout()
-        
-        # Guardamos en alta calidad
         plt.savefig(output_filename, dpi=300, bbox_inches='tight')
         plt.close()
         print(f"  [ÉXITO] Gráfica guardada como '{output_filename}'\n")
 
 if __name__ == "__main__":
-    print("\n--- GENERANDO GRÁFICAS DE ENTRENAMIENTO NIVEL DIOS ---\n")
+    print("\n--- GENERANDO GRÁFICAS DE ENTRENAMIENTO (ESTILO PAPER) ---\n")
+    
     
     directorio_logs = "/content/drive/MyDrive/TFG_ARViT/graficas y resultados modelos/"
     
-    # Hemos añadido la constante mágica para N=10 que calculaste antes
-    E_EXACT_10 = -12.784906 
+    
+    E_EXACTA = -12.32525024471575
     
     logs_a_procesar = {
         "resultado_benchmark_02_Jastrow.log": "02 - Jastrow (Mean Field) + Metropolis",
@@ -96,8 +106,7 @@ if __name__ == "__main__":
     for log_file, title in logs_a_procesar.items():
         ruta_completa = directorio_logs + log_file
         nombre_base = log_file.replace(".log", "")
-        # Le añado "_HD" al final para no sobreescribir las anteriores
-        png_name = directorio_logs + f"training_{nombre_base}_HD.png" 
+        # Sufijo _Paper para diferenciarlas
+        png_name = directorio_logs + f"training_{nombre_base}_Paper.png" 
         
-        # Le pasamos la energía exacta a la función
-        plot_benchmark_training(ruta_completa, title, png_name, exact_energy=E_EXACT_10)
+        plot_benchmark_training(ruta_completa, title, png_name, exact_energy=E_EXACTA)
