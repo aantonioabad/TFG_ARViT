@@ -13,7 +13,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__)) if '__file__' in global
 parent_dir = os.path.dirname(current_dir)
 sys.path.append(parent_dir)
 
-from physics.hamiltonian import get_Hamiltonian
+from physics.ising_netket import get_Hamiltonian
 
 def plot_training(log_path, phase_name, output_filename, exact_energy, alpha, J):
     if not os.path.exists(log_path):
@@ -42,18 +42,30 @@ def plot_training(log_path, phase_name, output_filename, exact_energy, alpha, J)
         
         plt.tight_layout()
         plt.savefig(output_filename, dpi=300, bbox_inches='tight')
-        plt.close() # <-- Esto asegura que sean gráficas 100% separadas
+        plt.close() # Asegura que sean gráficas 100% separadas
         print(f"  [ÉXITO] Guardada: {output_filename}")
 
 
 if __name__ == "__main__":
-    N = 10  
+    N = 10  # Número de espines para calcular la energía exacta
     drive_dir = "/content/drive/MyDrive/TFG_ARViT/Fase_ J_alpha/"
     
-    # Solo las 10 gráficas que quieres ahora mismo
+    # Valores de J y alpha EXACTOS según tus capturas de pantalla
     experimentos = {
-        2.5: {-4.0: "Fase FM", -2.0: "Crit FM", 1.0: "Para", 4.75: "Crit AFM", 7.0: "Fase AFM"},
-        6.0: {-4.0: "Fase FM", -3.0: "Crit FM", 1.0: "Para", 3.1: "Crit AFM", 5.0: "Fase AFM"}
+        2.5: {
+            -4.0: "Fase FM", 
+            -2.0: "Crit FM", 
+             1.0: "Para", 
+             4.75: "Crit AFM", 
+             7.0: "Fase AFM"
+        },
+        6.0: {
+            -4.0: "Fase FM", 
+            -3.0: "Crit FM", 
+             1.0: "Para", 
+             3.0: "Crit AFM", 
+             7.0: "Fase AFM"
+        }
     }
 
     exact_energies_summary = {alpha: {} for alpha in experimentos.keys()}
@@ -73,7 +85,7 @@ if __name__ == "__main__":
             exact_energies_summary[alpha][J] = E_exacta
             print(f"  [+] Energía Exacta Calculada: {E_exacta:.6f}")
 
-            # 2. Buscar el archivo de log correspondiente en Drive
+            # 2. Buscar el archivo de log correspondiente en Drive usando comodines
             patron_busqueda = os.path.join(drive_dir, f"resultado_LR_alpha{alpha}_J{J}*")
             archivos_encontrados = glob.glob(patron_busqueda)
             
@@ -91,7 +103,7 @@ if __name__ == "__main__":
 
     # 5. Imprimir el bloque de energías al final
     print("\n" + "="*50)
-    print("  ENERGÍAS EXACTAS CALCULADAS (Para copiar y pegar) 📋")
+    print(" ENERGÍAS EXACTAS CALCULADAS")
     print("="*50)
     print("exact_energies = {")
     for alpha_val in exact_energies_summary:
