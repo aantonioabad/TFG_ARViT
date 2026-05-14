@@ -13,7 +13,7 @@ parent_dir = os.path.dirname(current_dir)
 sys.path.append(parent_dir)
 
 # Importamos tu función, tu modelo y las utilidades
-from physics.ising_netket import get_Hamiltonian
+from physics.hamiltonian import get_Hamiltonian
 from models.vitB import ARSpinViT_Causal
 from physics.utils import BestIterKeeper, plot_markov_autocorrelation
 
