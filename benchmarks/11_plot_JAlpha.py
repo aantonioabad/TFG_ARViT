@@ -13,7 +13,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__)) if '__file__' in global
 parent_dir = os.path.dirname(current_dir)
 sys.path.append(parent_dir)
 
-from physics.ising_netket import get_Hamiltonian
+from physics.hamiltonian import get_Hamiltonian
 
 def plot_training(log_path, phase_name, output_filename, exact_energy, alpha, J):
     if not os.path.exists(log_path):
@@ -47,7 +47,7 @@ def plot_training(log_path, phase_name, output_filename, exact_energy, alpha, J)
 
 
 if __name__ == "__main__":
-    N = 10  # Número de espines para calcular la energía exacta
+    N = 10  
     drive_dir = "/content/drive/MyDrive/TFG_ARViT/Fase_ J_alpha/"
     
     # Solo las 10 gráficas que quieres ahora mismo
