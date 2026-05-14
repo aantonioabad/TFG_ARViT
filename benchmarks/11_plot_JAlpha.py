@@ -63,8 +63,8 @@ def plot_long_range_training(log_path, phase_name, output_filename, exact_energy
 if __name__ == "__main__":
     print("\n--- GENERANDO GRÁFICAS DEL DIAGRAMA DE FASES (LONG-RANGE) ---\n")
     
-    # 1. RUTA: Apuntando directamente a la subcarpeta que creaste
-    directorio_logs = "/content/drive/MyDrive/TFG_ARViT/Fase_J_alpha/"
+    
+    directorio_logs = "/content/drive/MyDrive/TFG_ARViT/Fase_ J_alpha/"
     
     # 2. LAS ENERGÍAS EXACTAS (Insertadas desde tu imagen)
     exact_energies = {
