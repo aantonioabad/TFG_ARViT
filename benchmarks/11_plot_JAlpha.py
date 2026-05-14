@@ -1,105 +1,103 @@
-import json
 import os
+import sys
+import json
 import glob
 import numpy as np
+import netket as nk
+import scipy.sparse.linalg
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 
-def plot_long_range_training(log_path, phase_name, output_filename, exact_energy):
-    print(f"Generando gráfica para: {phase_name}...")
-    
+# Ajuste de rutas para importar tu Hamiltoniano
+current_dir = os.path.dirname(os.path.abspath(__file__)) if '__file__' in globals() else os.getcwd()
+parent_dir = os.path.dirname(current_dir)
+sys.path.append(parent_dir)
+
+from physics.ising_netket import get_Hamiltonian
+
+def plot_training(log_path, phase_name, output_filename, exact_energy, alpha, J):
     if not os.path.exists(log_path):
-        print(f"  [ERROR] No se encuentra el archivo {log_path}.")
+        print(f"  [ERROR] No se encuentra el log en: {log_path}")
         return
 
     with open(log_path, 'r') as f:
         data = json.load(f)
         
     iters = data['Energy']['iters']
-    energy_mean = []
-    for e in data['Energy']['Mean']:
-        if isinstance(e, dict):
-            energy_mean.append(e.get('real', 0.0))
-        else:
-            energy_mean.append(float(np.real(e)))
+    energy_mean = [e.get('real', 0.0) if isinstance(e, dict) else float(np.real(e)) for e in data['Energy']['Mean']]
 
-    # ESTÉTICA DE ARTÍCULO CIENTÍFICO (LaTeX-like)
-    with plt.rc_context({
-        'font.family': 'serif',
-        'font.size': 11,
-        'axes.labelsize': 12,
-        'axes.titlesize': 11,
-        'xtick.labelsize': 10,
-        'ytick.labelsize': 10,
-        'axes.spines.top': True,
-        'axes.spines.right': True,
-    }):
+    with plt.rc_context({'font.family': 'serif', 'font.size': 11, 'axes.spines.top': True, 'axes.spines.right': True}):
         fig, ax = plt.subplots(figsize=(8, 5), dpi=150)
-
-        # Colores: Tono púrpura/índigo pastel para la serie Long-Range
-        color_data = "#7D3C98"    # Púrpura pastel oscuro
-        color_exact = "#F1948A"   # Salmón pastel
-
-        # Datos crudos
-        ax.plot(iters, energy_mean, color=color_data, linewidth=1.2, label="Energía VMC (ARViT)")
         
-        # Línea exacta
-        ax.axhline(exact_energy, color=color_exact, linestyle="--", linewidth=1.8, 
-                    label=f"Energía Exacta ({exact_energy:.4f})")
+        # Gráfica con el valor de alpha en la leyenda, como pediste
+        ax.plot(iters, energy_mean, color="#7D3C98", linewidth=1.2, label=f"VMC (ARViT) | $\\alpha={alpha}$")
+        ax.axhline(exact_energy, color="#F1948A", linestyle="--", linewidth=1.8, label=f"Energía Exacta ({exact_energy:.4f})")
 
-        ax.set_title(phase_name.upper(), pad=12)
+        ax.set_title(f"{phase_name} (J={J}, $\\alpha$={alpha})", pad=12)
         ax.set_xlabel("Épocas")
-        ax.set_ylabel(r"Parámetro de control, $H$")
-        
+        ax.set_ylabel(r"Energía, $\langle H \rangle$")
         ax.grid(True, linestyle='-', color='#E5E8E8', linewidth=1.0)
         ax.yaxis.set_major_locator(MaxNLocator(nbins=12))
         ax.legend(loc="upper right", frameon=False, fontsize=10)
         
         plt.tight_layout()
         plt.savefig(output_filename, dpi=300, bbox_inches='tight')
-        plt.close()
-        print(f"  [ÉXITO] Gráfica guardada como '{output_filename}'\n")
+        plt.close() # <-- Esto asegura que sean gráficas 100% separadas
+        print(f"  [ÉXITO] Guardada: {output_filename}")
+
 
 if __name__ == "__main__":
-    print("\n--- GENERANDO GRÁFICAS DEL DIAGRAMA DE FASES (LONG-RANGE) ---\n")
+    N = 10  # Número de espines para calcular la energía exacta
+    drive_dir = "/content/drive/MyDrive/TFG_ARViT/Fase_ J_alpha/"
     
-    
-    directorio_logs = "/content/drive/MyDrive/TFG_ARViT/Fase_ J_alpha/"
-    
-    # 2. LAS ENERGÍAS EXACTAS 
-    exact_energies = {
-        -4.0: -41.307541,
-        -3.0: -31.342744,
-        1.0: -12.204841,
-        3.0: -30.418123,
-        7.0: -69.350307
-    }
-    
-    # Mapeo de los valores de J a su nombre físico (para el título de la gráfica)
+    # Solo las 10 gráficas que quieres ahora mismo
     experimentos = {
-        -4.0: "J = -4.0 | Fase FM Profunda",
-        -3.0: "J = -3.0 | Transición Crítica FM",
-        1.0: "J =  1.0 | Fase Paramagnética (Desorden)",
-        3.0: "J =  3.0 | Transición Crítica AFM",
-        7.0: "J =  7.0 | Fase AFM Profunda"
+        2.5: {-4.0: "Fase FM", -2.0: "Crit FM", 1.0: "Para", 4.75: "Crit AFM", 7.0: "Fase AFM"},
+        6.0: {-4.0: "Fase FM", -3.0: "Crit FM", 1.0: "Para", 3.1: "Crit AFM", 5.0: "Fase AFM"}
     }
 
-    for J, titulo in experimentos.items():
-        # Usamos glob para buscar el archivo ignorando si tiene un .log extra
-        patron_busqueda = os.path.join(directorio_logs, f"resultado_LR_alpha6.0_J{J}*")
-        archivos_encontrados = glob.glob(patron_busqueda)
-        
-        if not archivos_encontrados:
-            print(f"  [ERROR] No se encuentra ningún archivo para J={J}. Patrón buscado: {patron_busqueda}")
-            continue
+    exact_energies_summary = {alpha: {} for alpha in experimentos.keys()}
+
+    print("\n--- CALCULANDO ENERGÍAS Y GENERANDO 10 GRÁFICAS INDIVIDUALES ---\n")
+
+    for alpha, js_dict in experimentos.items():
+        for J, titulo in js_dict.items():
+            print(f"\n>>> Procesando J={J} | alpha={alpha} <<<")
             
-        # Cogemos el primer archivo que coincida
-        ruta_completa = archivos_encontrados[0]
-        
-        # Le decimos que guarde el PNG en tu misma carpeta Fase_J_alpha
-        png_name = os.path.join(directorio_logs, f"training_LR_J{J}_alpha6.0_Paper.png")
-        
-        # Obtenemos la energía exacta de nuestro diccionario
-        E_exacta = exact_energies[J]
-        
-        plot_long_range_training(ruta_completa, titulo, png_name, exact_energy=E_exacta)
+            # 1. Calcular la energía exacta sobre la marcha
+            hi = nk.hilbert.Spin(s=1/2, N=N)
+            H = get_Hamiltonian(N=N, J=J, alpha=alpha, hilbert=hi)
+            H_sparse = H.to_sparse()
+            evals, _ = scipy.sparse.linalg.eigsh(H_sparse, k=1, which="SA")
+            E_exacta = float(evals[0])
+            exact_energies_summary[alpha][J] = E_exacta
+            print(f"  [+] Energía Exacta Calculada: {E_exacta:.6f}")
+
+            # 2. Buscar el archivo de log correspondiente en Drive
+            patron_busqueda = os.path.join(drive_dir, f"resultado_LR_alpha{alpha}_J{J}*")
+            archivos_encontrados = glob.glob(patron_busqueda)
+            
+            if not archivos_encontrados:
+                print(f"  [OMITIDO] No hay log de entrenamiento guardado para este punto.")
+                continue
+                
+            ruta_log = archivos_encontrados[0]
+            
+            # 3. Formato exacto de nombre de archivo solicitado: training_LR_J_alpha_.png
+            png_name = os.path.join(drive_dir, f"training_LR_{J}_{alpha}_.png")
+            
+            # 4. Generar la gráfica individual
+            plot_training(ruta_log, titulo, png_name, exact_energy=E_exacta, alpha=alpha, J=J)
+
+    # 5. Imprimir el bloque de energías al final
+    print("\n" + "="*50)
+    print("  ENERGÍAS EXACTAS CALCULADAS (Para copiar y pegar) 📋")
+    print("="*50)
+    print("exact_energies = {")
+    for alpha_val in exact_energies_summary:
+        print(f"    {alpha_val}: {{")
+        for j_val, e_val in exact_energies_summary[alpha_val].items():
+            print(f"        {j_val}: {e_val:.6f},")
+        print("    },")
+    print("}")
+    print("="*50 + "\n")
