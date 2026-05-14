@@ -28,7 +28,7 @@ def run_vit_metropolis():
     hi = nk.hilbert.Spin(s=0.5, N=N)
     H = get_Hamiltonian(N, J=1.0, alpha=3.0, hilbert=hi)
 
-    # TU MODELO ORIGINAL EXACTO
+    
     model = BatchedSpinViT(
         token_size=1,
         embedding_d=8,
