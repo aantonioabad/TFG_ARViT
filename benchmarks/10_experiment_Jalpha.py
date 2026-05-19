@@ -32,9 +32,9 @@ def run_total_rebuild(N=10):
     exact_energies_summary = {alpha: {} for alpha in experimentos.keys()}
 
     print(f"\n{'='*80}")
-    print(f"🚀 REHACIENDO TODO: 15 SIMULACIONES (3 Alphas x 5 Js)")
-    print(f"💾 Destino: {drive_dir}")
-    print(f"🧠 Modelo: ARSpinViT_Causal (d=8, heads=2, blocks=2, ffn=1)")
+    print(f" REHACIENDO TODO: 15 SIMULACIONES (3 Alphas x 5 Js)")
+    print(f" Destino: {drive_dir}")
+    print(f" Modelo: ARSpinViT_Causal (d=8, heads=2, blocks=2, ffn=1)")
     print(f"{'='*80}\n")
 
     for alpha in [6.0, 2.5, 1.0]: 
