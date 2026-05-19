@@ -35,7 +35,7 @@ def run_metropolis_benchmark(N=10):
     exact_energies_summary = {}
 
     print(f"\n{'='*80}")
-    print(f"🚀 INICIANDO BENCHMARK 11.2: METROPOLIS SAMPLING (6 Puntos Seleccionados)")
+    print(f"🚀 INICIANDO BENCHMARK 10.2: METROPOLIS SAMPLING (6 Puntos Seleccionados)")
     print(f" Destino: {drive_dir}")
     print(f" Modelo: ARSpinViT_Causal (d=8, heads=2, blocks=2, ffn=1)")
     print(f" Sampler: MetropolisLocal (MCMC)")
