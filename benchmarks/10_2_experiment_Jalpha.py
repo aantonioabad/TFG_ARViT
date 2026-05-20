@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+import json
 import jax
 import jax.numpy as jnp
 import netket as nk
@@ -17,28 +18,19 @@ from models.vitB import ARSpinViT_Causal
 from physics.utils import BestIterKeeper, plot_markov_autocorrelation
 
 def run_metropolis_benchmark(N=10):
-    # Ruta a tu Drive
-    drive_dir = "/content/drive/MyDrive/TFG_ARViT/Fase_ J_alpha/"
+    drive_dir = "/content/drive/MyDrive/TFG_ARViT/Fase_ J_alpha/metropolis/"
     os.makedirs(drive_dir, exist_ok=True)
 
-    # Definimos la lista exacta de experimentos en el orden solicitado
     experimentos = [
-        (6.0, 7.0),
-        (6.0, -4.0),
-        (2.5, -4.0),
-        (2.5, 2.75),
-        (1.0, -2.0),
-        (1.0, 7.0)
+        (6.0, 7.0), (6.0, -4.0),
+        (2.5, -4.0), (2.5, 2.75),
+        (1.0, -2.0), (1.0, 7.0)
     ]
 
-    # Diccionario para guardar las energías exactas calculadas
     exact_energies_summary = {}
 
     print(f"\n{'='*80}")
-    print(f"🚀 INICIANDO BENCHMARK 10.2: METROPOLIS SAMPLING (6 Puntos Seleccionados)")
-    print(f" Destino: {drive_dir}")
-    print(f" Modelo: ARSpinViT_Causal (d=8, heads=2, blocks=2, ffn=1)")
-    print(f" Sampler: MetropolisLocal (MCMC)")
+    print(f"🚀 INICIANDO BENCHMARK 11.2: METROPOLIS + CALCULO DE FIDELIDAD")
     print(f"{'='*80}\n")
 
     for alpha, J in experimentos:
@@ -54,66 +46,54 @@ def run_metropolis_benchmark(N=10):
         if alpha not in exact_energies_summary:
             exact_energies_summary[alpha] = {}
         exact_energies_summary[alpha][J] = E_exact
-        print(f"  [+] Energía Exacta: {E_exact:.6f}")
 
-        # 2. Configuración del Modelo ARViT con tus hiperparámetros fijados
-        model = ARSpinViT_Causal(
-            hilbert=hi,
-            embedding_d=8,
-            n_heads=2,
-            n_blocks=2,
-            n_ffn_layers=1
-        )
-        
-        # CAMBIO CLAVE: Cambiamos ARDirectSampler por MetropolisLocal
+        # 2. Configuración del Modelo
+        model = ARSpinViT_Causal(hilbert=hi, embedding_d=8, n_heads=2, n_blocks=2, n_ffn_layers=1)
         sampler = nk.sampler.MetropolisLocal(hi)
-        
-        # Estado variacional con el nuevo sampler de Metropolis
         vstate = nk.vqs.MCState(sampler, model, n_samples=2048, seed=42)
         
         optimizer = optax.adam(learning_rate=0.001)
         gs = nk.driver.VMC_SR(H, optimizer, variational_state=vstate, diag_shift=0.1)
         keeper = BestIterKeeper(Hamiltonian=H, N=N, baseline=1e-6)
 
-        # 3. Nombres de archivos modificados para no sobrescribir el muestreo directo
+        # 3. Archivos de salida
         base_log_name = os.path.join(drive_dir, f"resultado_metropolis_alpha{alpha}_J{J}")
         log = nk.logging.JsonLog(base_log_name, save_params=False)
-        
         autocorr_img = os.path.join(drive_dir, f"autocorr_metropolis_J_{J}_alpha_{alpha}.png")
 
-        # 4. Ejecución del Entrenamiento (500 épocas)
-        print(f"  [+] Entrenando 500 épocas con Metropolis...")
-        start_time = time.time()
+        # 4. Entrenamiento
         gs.run(n_iter=500, out=log, show_progress=True, callback=keeper.update)
         jax.block_until_ready(vstate.variables)
         
-        # 5. Generar Autocorrelación
+        # 5. Cargar mejores parámetros y generar Autocorrelación
         vstate.parameters = keeper.best_state.parameters
-        print(f"  [+] Generando Autocorrelación: {os.path.basename(autocorr_img)}")
+        plot_markov_autocorrelation(vstate=vstate, H=H, benchmark_name="ARViT", max_lag=40, filename=autocorr_img)
         
-        plot_markov_autocorrelation(
-            vstate=vstate, 
-            H=H, 
-            benchmark_name=f"ARViT Metropolis (J={J}, alpha={alpha})", 
-            max_lag=40, 
-            filename=autocorr_img
-        )
+       
+        psi_exact = evecs[:, 0]  # Estado fundamental exacto de ED
+        psi_arvit = vstate.to_array()  # Estado completo de la red neuronal
+        psi_arvit = psi_arvit / jnp.linalg.norm(psi_arvit)  # Normalización por seguridad
         
-        print(f"  [√] Finalizado en {time.time() - start_time:.1f}s")
-        print("-" * 60)
+        # Trasponer y multiplicar (producto escalar complejo)
+        fidelidad = float(jnp.abs(jnp.vdot(psi_arvit, psi_exact))**2)
+        print(f"  [+] Fidelidad Cuántica Calculada: {fidelidad:.6f}")
+        
+        del log 
+        
+        # Abrimos el .log recién creado para inyectarle la fidelidad directamente
+        log_path = base_log_name + ".log"
+        if os.path.exists(log_path):
+            with open(log_path, 'r') as f:
+                log_data = json.load(f)
+            
+            # Guardamos la fidelidad en una clave nueva
+            log_data['Best_Fidelity'] = fidelidad
+            
+            with open(log_path, 'w') as f:
+                json.dump(log_data, f, indent=4)
+            print(f"  [💾] Fidelidad inyectada con éxito en el log.")
 
-    # 6. RESUMEN FINAL DE ENERGÍAS
-    print("\n" + "="*60)
-    print(" 📋 ENERGÍAS EXACTAS CALCULADAS 📋")
-    print("="*60)
-    print("exact_energies_metropolis = {")
-    for a_val in exact_energies_summary:
-        print(f"    {a_val}: {{")
-        for j_val, e_val in exact_energies_summary[a_val].items():
-            print(f"        {j_val}: {e_val:.6f},")
-        print("    },")
-    print("}")
-    print("="*60 + "\n")
+        print("-" * 60)
 
 if __name__ == "__main__":
     run_metropolis_benchmark(N=10)
