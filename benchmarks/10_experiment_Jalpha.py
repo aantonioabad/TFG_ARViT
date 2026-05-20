@@ -87,7 +87,31 @@ def run_direct_sampling_6_points(N=10):
         # 5. Cargar mejores parámetros para la Fidelidad
         vstate.parameters = keeper.best_state.parameters
         
-        
+        # 6. 🔥 CALCULAR FIDELIDAD CUÁNTICA EXACTA AL VUELO 🔥
         psi_exact = evecs[:, 0]  # Estado fundamental exacto de ED
         psi_arvit = vstate.to_array()  # Estado completo de la red neuronal
-        psi_arvit = psi_arvit / jnp.linalg.norm(psi_arvit)
+        psi_arvit = psi_arvit / jnp.linalg.norm(psi_arvit)  # Normalización por seguridad
+        
+        fidelidad = float(jnp.abs(jnp.vdot(psi_arvit, psi_exact))**2)
+        print(f"  [+] Fidelidad Cuántica Calculada: {fidelidad:.6f}")
+        
+        # Forzamos el cierre del logger para que escriba el archivo
+        del log 
+        
+        # Inyectamos la fidelidad en el log generado
+        log_path = base_log_name + ".log"
+        if os.path.exists(log_path):
+            with open(log_path, 'r') as f:
+                log_data = json.load(f)
+            
+            log_data['Best_Fidelity'] = fidelidad
+            
+            with open(log_path, 'w') as f:
+                json.dump(log_data, f, indent=4)
+            print(f"  [💾] Fidelidad inyectada con éxito en el log: {os.path.basename(log_path)}")
+        
+        print(f"  [√] Finalizado en {time.time() - start_time:.1f}s")
+        print("-" * 60)
+
+if __name__ == "__main__":
+    run_direct_sampling_6_points(N=10)
