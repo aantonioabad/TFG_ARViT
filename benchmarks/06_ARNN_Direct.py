@@ -1,102 +1,147 @@
 import os
-import sys
-import time
-import jax
-import jax.numpy as jnp
-import scipy.sparse.linalg
-import netket as nk
-import optax
+import json
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
 
-current_dir = os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.dirname(current_dir)
-sys.path.append(parent_dir)
-
-os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
-
-# --- IMPORTACIONES---
-from physics.hamiltonian import get_Hamiltonian
-from physics.utils import BestIterKeeper  
-from physics.utils import plot_markov_autocorrelation
-
-
-def run_ar_direct():
-    print(">>> BENCHMARK 06: ARNN (NK) + DIRECT SAMPLING ")
-    print("---------------------------------------------------------")
+def generar_todas_las_comparativas():
+    # 1. Detección robusta del directorio raíz
+    current_dir = os.path.dirname(os.path.abspath(__file__)) if '__file__' in globals() else os.getcwd()
     
-    N = 10
-    hi = nk.hilbert.Spin(s=0.5, N=N)
-    H = get_Hamiltonian(N, J=1.0, alpha=3.0, hilbert=hi)
+    if os.path.basename(current_dir) in ['benchmarks', 'plots']:
+        root_dir = os.path.dirname(current_dir)
+    else:
+        root_dir = current_dir
 
-    model = nk.models.ARNNDense(
-        hilbert=hi,
-        layers=3,
-        features=16
-    )
+    # 2. Diccionario con todos los modelos, rutas y colores (Etiquetas limpias)
+    modelos = {
+        "Jastrow": {
+            "ruta": os.path.join(root_dir, "resultado_benchmark_02.log"),
+            "color": "#34495E"  # Gris Azulado Oscuro (Baseline)
+        },
+        "RNN": {
+            "ruta": os.path.join(root_dir, "resultado_benchmark_03.log"),
+            "color": "#E74C3C"  # Rojo
+        },
+        "ViT": {
+            "ruta": os.path.join(root_dir, "resultado_benchmark_04.log"),
+            "color": "#8E44AD"  # Morado
+        },
+        "ARNN (Metropolis)": {
+            "ruta": os.path.join(root_dir, "resultado_benchmark_05.log"),
+            "color": "#F39C12"  # Naranja
+        },
+        "ARNN": {
+            "ruta": os.path.join(root_dir, "resultado_benchmark_06.log"),
+            "color": "#2E86C1"  # Azul
+        },
+        "ARViT": {
+            "ruta": os.path.join(root_dir, "resultado_benchmark_06B.log"),
+            "color": "#27AE60"  # Verde
+        }
+    }
 
-    sampler = nk.sampler.ARDirectSampler(hi)
-    vstate = nk.vqs.MCState(sampler, model, n_samples=2048, seed=42)
-    
-    optimizer = optax.adam(learning_rate=0.001)
-    gs = nk.driver.VMC_SR(H, optimizer, variational_state=vstate, diag_shift=0.1)
+    # Valor de energía exacta
+    E_exacta = -12.32525024471575
+    E_exacta_label = -12.3253 
 
-    print("Precalentando y compilando con JAX ...")
-    gs.run(n_iter=1, show_progress=False)
-    jax.block_until_ready(vstate.variables)
+    # 3. Lista con los 7 enfrentamientos y sus límites personalizados en el eje X
+    enfrentamientos = [
+        {
+            "pareja": ["RNN", "ARNN"],
+            "titulo": "Comparativa de Convergencia: RNN vs ARNN",
+            "archivo": "comparativa_03_vs_06.png",
+            "x_max": 900
+        },
+        {
+            "pareja": ["RNN", "ViT"],
+            "titulo": "Comparativa de Convergencia: RNN vs ViT",
+            "archivo": "comparativa_03_vs_04.png",
+            "x_max": 900
+        },
+        {
+            "pareja": ["ViT", "ARNN (Metropolis)"],
+            "titulo": "Comparativa de Convergencia: ViT vs ARNN (Metropolis)",
+            "archivo": "comparativa_04_vs_05.png",
+            "x_max": 900 
+        },
+        {
+            "pareja": ["ViT", "ARNN"],
+            "titulo": "Comparativa de Convergencia: ViT vs ARNN",
+            "archivo": "comparativa_04_vs_06.png",
+            "x_max": 350
+        },
+        {
+            "pareja": ["ARNN", "ARViT"],
+            "titulo": "Comparativa de Convergencia: ARNN vs ARViT",
+            "archivo": "comparativa_06_vs_06B.png",
+            "x_max": 350
+        },
+        {
+            "pareja": ["ViT", "ARViT"],
+            "titulo": "Comparativa de Convergencia: ViT vs ARViT",
+            "archivo": "comparativa_04_vs_06B.png",
+            "x_max": 350
+        },
+        {
+            # EL NUEVO ENFRENTAMIENTO A TRES BANDAS
+            "pareja": ["Jastrow", "ARNN", "ARViT"],
+            "titulo": "Comparativa de Convergencia: Jastrow vs ARNN vs ARViT",
+            "archivo": "comparativa_02_vs_06_vs_06B.png",
+            "x_max": 900
+        }
+    ]
 
-    keeper = BestIterKeeper(Hamiltonian=H, N=N, baseline=1e-6)
+    print("\n" + "="*70)
+    print("📊 GENERANDO MASTER COMPLETO DE COMPARATIVAS (7 GRÁFICAS) 📊")
+    print("="*70 + "\n")
 
-    print("Iniciando benchmark cronometrado...")
-    start_time = time.time()
-    
-    log = nk.logging.JsonLog("resultado_benchmark_06_ARNN", save_params=False)
-    
-    gs.run(n_iter=1000, out=log, show_progress=True, callback=keeper.update)
-    
-    jax.block_until_ready(vstate.variables)
-    end_time = time.time()
-    
-    print(f"\nEntrenamiento terminado. Restaurando la mejor iteración (Energia: {keeper.best_energy:.6f})...")
-    vstate.parameters = keeper.best_state.parameters
+    # Bucle principal
+    for combate in enfrentamientos:
+        print(f"[*] Procesando: {combate['archivo']} (Eje X hasta {combate['x_max']})")
+        
+        with plt.rc_context({'font.family': 'serif', 'font.size': 11, 'axes.spines.top': True, 'axes.spines.right': True}):
+            fig, ax = plt.subplots(figsize=(9, 6), dpi=150)
+            
+            for nombre_modelo in combate['pareja']:
+                datos_modelo = modelos[nombre_modelo]
+                ruta = datos_modelo['ruta']
+                
+                if not os.path.exists(ruta):
+                    print(f"  [ERROR] No se encontró el log: {os.path.basename(ruta)}")
+                    continue
+                    
+                with open(ruta, 'r') as f:
+                    data = json.load(f)
+                    
+                iters = data['Energy']['iters']
+                energy_mean = [e.get('real', 0.0) if isinstance(e, dict) else float(np.real(e)) for e in data['Energy']['Mean']]
+                
+                ax.plot(iters, energy_mean, label=nombre_modelo, color=datos_modelo['color'], linewidth=1.5, alpha=0.85)
 
-    # --- CÁLCULO DE MÉTRICAS ---
-    print("Calculando métricas finales...")
-    E_stat = vstate.expect(H)
-    E_mean = E_stat.mean.real
-    E_var = E_stat.variance.real
-    tau_c = getattr(E_stat, "tau_corr", 0.0)
-    pearson_dev = jnp.sqrt(E_var) / abs(E_mean)
+            ax.axhline(E_exacta, color="black", linestyle="--", linewidth=1.5, label=f"Energía Exacta ({E_exacta_label:.4f})")
 
-    H_sparse = H.to_sparse()
-    evals, evecs = scipy.sparse.linalg.eigsh(H_sparse, k=1, which="SA")
-    psi_exact = evecs[:, 0]
-    E_exact = evals[0]
+            ax.set_title(combate['titulo'], pad=15, fontweight='bold')
+            ax.set_xlabel("Épocas")
+            ax.set_ylabel(r"Energía, $\langle H \rangle$")
+            
+            # Ajustes de ZOOM dinámicos
+            ax.set_xlim(0, combate['x_max'])
+            ax.set_ylim(E_exacta - 0.05, -10.0) 
 
-    psi_vmc = vstate.to_array(normalize=True)
-    overlap = float(jnp.abs(jnp.vdot(psi_exact, psi_vmc))**2)
+            ax.grid(True, linestyle='-', color='#E5E8E8', linewidth=1.0)
+            ax.yaxis.set_major_locator(MaxNLocator(nbins=12))
+            
+            ax.legend(loc="upper right", frameon=True, fontsize=10, facecolor='#FDFEFE', edgecolor='#BDC3C7')
+            
+            output_path = os.path.join(current_dir, combate['archivo'])
+            plt.tight_layout()
+            plt.savefig(output_path, dpi=300, bbox_inches='tight')
+            plt.close()
+            
+            print(f"  [√] ¡Guardada en: {output_path}")
 
-    print("\n>>> RESULTADOS FINALES:")
-    print(f"Energia VMC       : {E_mean:.6f}")
-    print(f"Energia Exacta    : {E_exact:.6f}")
-    print(f"Error Relativo    : {abs((E_mean - E_exact)/E_exact):.2%}")
-    print(f"Desviacion Pearson: {pearson_dev:.6f}")
-    print(f"Fidelidad         : {overlap:.6f}")
-    print(f"Autocorrelación τ : {tau_c:.4f}")
-    print(f"Tiempo puro       : {end_time - start_time:.2f} s")
-
-    benchmark_title = "AR Direct"
-
-    plot_markov_autocorrelation(
-    vstate=vstate, 
-    H=H, 
-    benchmark_name=benchmark_title, 
-    max_lag=40, 
-    filename="autocorr_06_ARNNDirect.png" 
-    )
-    
-    
-
- 
-
+    print("\n[√] ¡Todo listo! Las 7 gráficas se han guardado con éxito con un diseño impecable.")
 
 if __name__ == "__main__":
-    run_ar_direct()
+    generar_todas_las_comparativas()
