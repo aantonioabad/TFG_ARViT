@@ -37,13 +37,13 @@ def generar_errores_relativos():
             "pareja": ["ViT", "ARViT"],
             "titulo": "Evolución del Error Relativo: ViT vs ARViT",
             "archivo": "error_relativo_04_vs_06B.png",
-            "x_max": 350
+            "x_max": 1000
         },
         {
             "pareja": ["ARNN", "ARViT"],
             "titulo": "Evolución del Error Relativo: ARNN vs ARViT",
             "archivo": "error_relativo_06_vs_06B.png",
-            "x_max": 350
+            "x_max": 1000
         }
     ]
 
