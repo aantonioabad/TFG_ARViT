@@ -141,7 +141,7 @@ def generar_todas_las_comparativas():
             
             print(f"  [√] ¡Guardada en: {output_path}")
 
-    print("\n[√] ¡Todo listo! Las 7 gráficas se han guardado con éxito con un diseño impecable.")
+    print("\n[√] ¡Todo listo! ")
 
 if __name__ == "__main__":
     generar_todas_las_comparativas()
