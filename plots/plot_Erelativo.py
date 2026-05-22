@@ -3,72 +3,103 @@ import json
 import numpy as np
 import matplotlib.pyplot as plt
 
-def plot_error_relativo():
-    # 1. Detectar el directorio raíz
+def generar_errores_relativos():
+    # 1. Detección robusta del directorio raíz
     current_dir = os.path.dirname(os.path.abspath(__file__)) if '__file__' in globals() else os.getcwd()
-    if os.path.basename(current_dir) == 'benchmarks':
+    
+    if os.path.basename(current_dir) in ['benchmarks', 'plots']:
         root_dir = os.path.dirname(current_dir)
     else:
         root_dir = current_dir
 
-    # 2. Archivos a comparar (05 vs 06)
-    archivos_logs = {
-        "ARNN (Metropolis)": os.path.join(root_dir, "resultado_benchmark_05.log"),
-        "ARNN (Muestreo Directo)": os.path.join(root_dir, "resultado_benchmark_06.log")
+    # 2. Diccionario con los modelos necesarios y sus colores
+    modelos = {
+        "ViT": {
+            "ruta": os.path.join(root_dir, "resultado_benchmark_04.log"),
+            "color": "#8E44AD"  # Morado
+        },
+        "ARNN": {
+            "ruta": os.path.join(root_dir, "resultado_benchmark_06.log"),
+            "color": "#2E86C1"  # Azul
+        },
+        "ARViT": {
+            "ruta": os.path.join(root_dir, "resultado_benchmark_06B.log"),
+            "color": "#27AE60"  # Verde
+        }
     }
 
-    colores = {
-        "ARNN (Metropolis)": "#F39C12",       # Naranja/Dorado
-        "ARNN (Muestreo Directo)": "#2E86C1"  # Azul
-    }
+    # Valor de energía exacta
+    E_exacta = -12.32525024471575
 
-    # ¡IMPORTANTE! Pon aquí la energía exacta real de tu sistema para este benchmark
-    E_exacta = -12.7289  
+    # 3. Enfrentamientos solicitados para el error relativo
+    enfrentamientos = [
+        {
+            "pareja": ["ViT", "ARViT"],
+            "titulo": "Evolución del Error Relativo: ViT vs ARViT",
+            "archivo": "error_relativo_04_vs_06B.png",
+            "x_max": 350
+        },
+        {
+            "pareja": ["ARNN", "ARViT"],
+            "titulo": "Evolución del Error Relativo: ARNN vs ARViT",
+            "archivo": "error_relativo_06_vs_06B.png",
+            "x_max": 350
+        }
+    ]
 
-    print("\n" + "="*60)
-    print("📉 GENERANDO GRÁFICA DE ERROR RELATIVO (05 vs 06) 📉")
-    print("="*60 + "\n")
+    print("\n" + "="*70)
+    print("📉 GENERANDO GRÁFICAS DE ERROR RELATIVO LOGARÍTMICO 📉")
+    print("="*70 + "\n")
 
-    with plt.rc_context({'font.family': 'serif', 'font.size': 11, 'axes.spines.top': True, 'axes.spines.right': True}):
-        fig, ax = plt.subplots(figsize=(9, 6), dpi=150)
+    # Bucle principal para generar cada gráfica
+    for combate in enfrentamientos:
+        print(f"[*] Procesando: {combate['archivo']} (Eje X hasta {combate['x_max']})")
         
-        for etiqueta, ruta in archivos_logs.items():
-            if not os.path.exists(ruta):
-                print(f"  [ERROR] No se encontró el log: {os.path.basename(ruta)}")
-                continue
-                
-            with open(ruta, 'r') as f:
-                data = json.load(f)
-                
-            iters = np.array(data['Energy']['iters'])
-            # Extraer energía media (parte real)
-            energy_mean = np.array([e.get('real', 0.0) if isinstance(e, dict) else float(np.real(e)) for e in data['Energy']['Mean']])
+        with plt.rc_context({'font.family': 'serif', 'font.size': 11, 'axes.spines.top': True, 'axes.spines.right': True}):
+            fig, ax = plt.subplots(figsize=(9, 6), dpi=150)
             
-            # Calcular el error relativo: |E_medida - E_exacta| / |E_exacta|
-            error_relativo = np.abs(energy_mean - E_exacta) / np.abs(E_exacta)
-            
-            # Ploteamos usando semilogy para que el eje Y sea logarítmico
-            ax.semilogy(iters, error_relativo, label=etiqueta, color=colores[etiqueta], linewidth=1.5, alpha=0.85)
-            print(f"  [+] Añadida curva: {etiqueta}")
+            for nombre_modelo in combate['pareja']:
+                datos_modelo = modelos[nombre_modelo]
+                ruta = datos_modelo['ruta']
+                
+                if not os.path.exists(ruta):
+                    print(f"  [ERROR] No se encontró el log: {os.path.basename(ruta)}")
+                    continue
+                    
+                with open(ruta, 'r') as f:
+                    data = json.load(f)
+                    
+                iters = np.array(data['Energy']['iters'])
+                # Manejo de números complejos si los hubiera
+                energy_mean = np.array([e.get('real', 0.0) if isinstance(e, dict) else float(np.real(e)) for e in data['Energy']['Mean']])
+                
+                # Fórmula del Error Relativo Absoluto
+                error_relativo = np.abs(energy_mean - E_exacta) / np.abs(E_exacta)
+                
+                # Usamos semilogy para el eje Y logarítmico
+                ax.semilogy(iters, error_relativo, label=nombre_modelo, color=datos_modelo['color'], linewidth=1.5, alpha=0.85)
 
-        # Formato de la gráfica
-        ax.set_title("Evolución del Error Relativo: Metropolis vs Muestreo Directo", pad=15, fontweight='bold')
-        ax.set_xlabel("Épocas")
-        ax.set_ylabel("Error Relativo (Escala Logarítmica)")
-        
-        # Añadimos una cuadrícula adaptada a la escala logarítmica
-        ax.grid(True, which="major", linestyle='-', color='#D5D8DC', linewidth=1.0)
-        ax.grid(True, which="minor", linestyle=':', color='#E5E8E8', linewidth=0.8)
-        
-        ax.legend(loc="upper right", frameon=True, fontsize=10, facecolor='#FDFEFE', edgecolor='#BDC3C7')
-        
-        # Guardar
-        output_path = os.path.join(root_dir, "comparativa_error_05_vs_06.png")
-        plt.tight_layout()
-        plt.savefig(output_path, dpi=300, bbox_inches='tight')
-        plt.close()
-        
-        print(f"\n  [√] ¡Gráfica de error guardada en: {output_path}")
+            ax.set_title(combate['titulo'], pad=15, fontweight='bold')
+            ax.set_xlabel("Épocas")
+            ax.set_ylabel("Error Relativo (Escala Logarítmica)")
+            
+            # Ajustamos el límite del eje X
+            ax.set_xlim(0, combate['x_max'])
+            
+            # Configuramos la rejilla para que se vea bien en escala logarítmica
+            ax.grid(True, which="major", linestyle='-', color='#D5D8DC', linewidth=1.0)
+            ax.grid(True, which="minor", linestyle=':', color='#E5E8E8', linewidth=0.8)
+            
+            ax.legend(loc="upper right", frameon=True, fontsize=10, facecolor='#FDFEFE', edgecolor='#BDC3C7')
+            
+            output_path = os.path.join(current_dir, combate['archivo'])
+            plt.tight_layout()
+            plt.savefig(output_path, dpi=300, bbox_inches='tight')
+            plt.close()
+            
+            print(f"  [√] ¡Guardada en: {output_path}")
+
+    print("\n[√] ¡Misión cumplida! Tienes las gráficas de error relativo listas.")
 
 if __name__ == "__main__":
-    plot_error_relativo()
+    generar_errores_relativos()
