@@ -51,7 +51,7 @@ def generar_todas_las_comparativas():
             "pareja": ["RNN", "ARNN"],
             "titulo": "Comparativa de Convergencia: RNN vs ARNN",
             "archivo": "comparativa_03_vs_06.png",
-            "x_max": 900
+            "x_max": 950
         },
         {
             "pareja": ["RNN", "ViT"],
@@ -63,7 +63,7 @@ def generar_todas_las_comparativas():
             "pareja": ["ViT", "ARNN (Metropolis)"],
             "titulo": "Comparativa de Convergencia: ViT vs ARNN (Metropolis)",
             "archivo": "comparativa_04_vs_05.png",
-            "x_max": 900 
+            "x_max": 350
         },
         {
             "pareja": ["ViT", "ARNN"],
@@ -85,10 +85,10 @@ def generar_todas_las_comparativas():
         },
         {
             # EL NUEVO ENFRENTAMIENTO A TRES BANDAS
-            "pareja": ["Jastrow", "ARNN", "ARViT"],
-            "titulo": "Comparativa de Convergencia: Jastrow vs ARNN vs ARViT",
-            "archivo": "comparativa_02_vs_06_vs_06B.png",
-            "x_max": 900
+            "pareja": ["Jastrow", "ViT", "ARViT"],
+            "titulo": "Comparativa de Convergencia: Jastrow vs ViT vs ARViT",
+            "archivo": "comparativa_02_vs_04_vs_06B.png",
+            "x_max": 475
         }
     ]
 
