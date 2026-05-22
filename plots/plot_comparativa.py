@@ -13,6 +13,7 @@ def plot_comparativa_modelos():
     else:
         root_dir = current_dir
 
+    # 2. Apuntamos a los nombres cortos en la raíz
     archivos_logs = {
         "RNN (Metropolis)": os.path.join(root_dir, "resultado_benchmark_03.log"),
         "ARNN (Metropolis)": os.path.join(root_dir, "resultado_benchmark_05.log"),
@@ -20,17 +21,17 @@ def plot_comparativa_modelos():
     }
 
     colores = {
-        "RNN (Metropolis)": "#E74C3C",        # Rojo
-        "ARNN (Metropolis)": "#F39C12",       # Naranja/Dorado
-        "ARNN (Muestreo Directo)": "#2E86C1"  # Azul
+        "RNN (Metropolis)": "#E74C3C",        
+        "ARNN (Metropolis)": "#F39C12",       
+        "ARNN (Muestreo Directo)": "#2E86C1"  
     }
 
-    # NUEVO VALOR DE ENERGÍA EXACTA
+    # Valor de energía exacta
     E_exacta = -12.32525024471575
-    E_exacta_label = -12.3253  # Redondeado para la leyenda
+    E_exacta_label = -12.3253 
 
     print("\n" + "="*60)
-    print("📊 GENERANDO GRÁFICA COMPARATIVA DE CONVERGENCIA (ZOOM) 📊")
+    print("📊 GENERANDO GRÁFICA COMPARATIVA DE CONVERGENCIA (1000 ÉPOCAS) 📊")
     print("="*60 + "\n")
 
     with plt.rc_context({'font.family': 'serif', 'font.size': 11, 'axes.spines.top': True, 'axes.spines.right': True}):
@@ -56,23 +57,17 @@ def plot_comparativa_modelos():
         ax.set_xlabel("Épocas")
         ax.set_ylabel(r"Energía, $\langle H \rangle$")
         
-        # --- LOS CORTES DE LOS EJES (ZOOM) ESTÁN AQUÍ ---
-        # 1. Cortar el eje X en la época 250
-        ax.set_xlim(0, 250)
+        # --- AJUSTES PARA VISTA COMPLETA (1000 ITERS) ---
+        ax.set_xlim(0, 1000)
+        # Se ha eliminado ax.set_ylim() para que se vea toda la escala de energía automáticamente
         
-        # 2. Cortar el eje Y para evitar el pico inicial. 
-        # Ponemos el límite inferior un poco por debajo de la energía exacta (-12.37)
-        # Y el superior en -10.0 (así eliminamos las energías de -5.6 que chafaban la gráfica)
-        ax.set_ylim(E_exacta - 0.05, -10.0) 
-        # -----------------------------------------------
-
         ax.grid(True, linestyle='-', color='#E5E8E8', linewidth=1.0)
         ax.yaxis.set_major_locator(MaxNLocator(nbins=12))
         
         ax.legend(loc="upper right", frameon=True, fontsize=10, facecolor='#FDFEFE', edgecolor='#BDC3C7')
         
-        # He cambiado ligeramente el nombre de salida para que distingas la gráfica con zoom
-        output_path = os.path.join(current_dir, "comparativa_03_05_06_zoom.png")
+        # Nombre actualizado para distinguir esta versión
+        output_path = os.path.join(current_dir, "comparativa_03_05_06_completa.png")
         plt.tight_layout()
         plt.savefig(output_path, dpi=300, bbox_inches='tight')
         plt.close()
