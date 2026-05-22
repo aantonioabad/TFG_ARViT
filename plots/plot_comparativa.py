@@ -13,8 +13,12 @@ def generar_todas_las_comparativas():
     else:
         root_dir = current_dir
 
-    # 2. Diccionario con todos los modelos, rutas y colores (Nombres limpios para la leyenda)
+    # 2. Diccionario con todos los modelos, rutas y colores (Etiquetas limpias)
     modelos = {
+        "Jastrow": {
+            "ruta": os.path.join(root_dir, "resultado_benchmark_02.log"),
+            "color": "#34495E"  # Gris Azulado Oscuro (Baseline)
+        },
         "RNN": {
             "ruta": os.path.join(root_dir, "resultado_benchmark_03.log"),
             "color": "#E74C3C"  # Rojo
@@ -22,6 +26,10 @@ def generar_todas_las_comparativas():
         "ViT": {
             "ruta": os.path.join(root_dir, "resultado_benchmark_04.log"),
             "color": "#8E44AD"  # Morado
+        },
+        "ARNN (Metropolis)": {
+            "ruta": os.path.join(root_dir, "resultado_benchmark_05.log"),
+            "color": "#F39C12"  # Naranja
         },
         "ARNN": {
             "ruta": os.path.join(root_dir, "resultado_benchmark_06.log"),
@@ -37,7 +45,7 @@ def generar_todas_las_comparativas():
     E_exacta = -12.32525024471575
     E_exacta_label = -12.3253 
 
-    # 3. Lista de todas las gráficas a generar con sus cortes personalizados en el eje X
+    # 3. Lista con los 7 enfrentamientos y sus límites personalizados en el eje X
     enfrentamientos = [
         {
             "pareja": ["RNN", "ARNN"],
@@ -50,6 +58,12 @@ def generar_todas_las_comparativas():
             "titulo": "Comparativa de Convergencia: RNN vs ViT",
             "archivo": "comparativa_03_vs_04.png",
             "x_max": 900
+        },
+        {
+            "pareja": ["ViT", "ARNN (Metropolis)"],
+            "titulo": "Comparativa de Convergencia: ViT vs ARNN (Metropolis)",
+            "archivo": "comparativa_04_vs_05.png",
+            "x_max": 900 
         },
         {
             "pareja": ["ViT", "ARNN"],
@@ -68,14 +82,21 @@ def generar_todas_las_comparativas():
             "titulo": "Comparativa de Convergencia: ViT vs ARViT",
             "archivo": "comparativa_04_vs_06B.png",
             "x_max": 350
+        },
+        {
+            # EL NUEVO ENFRENTAMIENTO A TRES BANDAS
+            "pareja": ["Jastrow", "ARNN", "ARViT"],
+            "titulo": "Comparativa de Convergencia: Jastrow vs ARNN vs ARViT",
+            "archivo": "comparativa_02_vs_06_vs_06B.png",
+            "x_max": 900
         }
     ]
 
     print("\n" + "="*70)
-    print("📊 GENERANDO MASTER DE COMPARATIVAS (LEYENDAS LIMPIAS) 📊")
+    print("📊 GENERANDO MASTER COMPLETO DE COMPARATIVAS (7 GRÁFICAS) 📊")
     print("="*70 + "\n")
 
-    # Bucle principal que genera cada gráfica
+    # Bucle principal
     for combate in enfrentamientos:
         print(f"[*] Procesando: {combate['archivo']} (Eje X hasta {combate['x_max']})")
         
@@ -120,7 +141,7 @@ def generar_todas_las_comparativas():
             
             print(f"  [√] ¡Guardada en: {output_path}")
 
-    print("\n[√] Proceso completado. ¡Todas las gráficas listas para el TFG!")
+    print("\n[√] ¡Todo listo! Las 7 gráficas se han guardado con éxito con un diseño impecable.")
 
 if __name__ == "__main__":
     generar_todas_las_comparativas()
