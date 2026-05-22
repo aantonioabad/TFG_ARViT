@@ -13,21 +13,21 @@ def generar_todas_las_comparativas():
     else:
         root_dir = current_dir
 
-    # 2. Diccionario con todos los modelos, rutas y colores
+    # 2. Diccionario con todos los modelos, rutas y colores (Nombres limpios para la leyenda)
     modelos = {
-        "RNN [03]": {
+        "RNN": {
             "ruta": os.path.join(root_dir, "resultado_benchmark_03.log"),
             "color": "#E74C3C"  # Rojo
         },
-        "ViT [04]": {
+        "ViT": {
             "ruta": os.path.join(root_dir, "resultado_benchmark_04.log"),
             "color": "#8E44AD"  # Morado
         },
-        "ARNN [06]": {
+        "ARNN": {
             "ruta": os.path.join(root_dir, "resultado_benchmark_06.log"),
             "color": "#2E86C1"  # Azul
         },
-        "ARNN Alt [06B]": {
+        "ARViT": {
             "ruta": os.path.join(root_dir, "resultado_benchmark_06B.log"),
             "color": "#27AE60"  # Verde
         }
@@ -40,39 +40,39 @@ def generar_todas_las_comparativas():
     # 3. Lista de todas las gráficas a generar con sus cortes personalizados en el eje X
     enfrentamientos = [
         {
-            "pareja": ["RNN [03]", "ARNN [06]"],
+            "pareja": ["RNN", "ARNN"],
             "titulo": "Comparativa de Convergencia: RNN vs ARNN",
             "archivo": "comparativa_03_vs_06.png",
             "x_max": 900
         },
         {
-            "pareja": ["RNN [03]", "ViT [04]"],
+            "pareja": ["RNN", "ViT"],
             "titulo": "Comparativa de Convergencia: RNN vs ViT",
             "archivo": "comparativa_03_vs_04.png",
             "x_max": 900
         },
         {
-            "pareja": ["ViT [04]", "ARNN [06]"],
+            "pareja": ["ViT", "ARNN"],
             "titulo": "Comparativa de Convergencia: ViT vs ARNN",
             "archivo": "comparativa_04_vs_06.png",
-            "x_max": 350  # Límite ajustado a 350
+            "x_max": 350
         },
         {
-            "pareja": ["ARNN [06]", "ARNN Alt [06B]"],
-            "titulo": "Comparativa de Convergencia: ARNN (06 vs 06B)",
+            "pareja": ["ARNN", "ARViT"],
+            "titulo": "Comparativa de Convergencia: ARNN vs ARViT",
             "archivo": "comparativa_06_vs_06B.png",
-            "x_max": 350  # Límite ajustado a 350
+            "x_max": 350
         },
         {
-            "pareja": ["ViT [04]", "ARNN Alt [06B]"],
-            "titulo": "Comparativa de Convergencia: ViT vs ARNN Alt",
+            "pareja": ["ViT", "ARViT"],
+            "titulo": "Comparativa de Convergencia: ViT vs ARViT",
             "archivo": "comparativa_04_vs_06B.png",
-            "x_max": 350  # Lo ajusto también a 350 para mantener la escala con el 06B
+            "x_max": 350
         }
     ]
 
     print("\n" + "="*70)
-    print("📊 GENERANDO ")
+    print("📊 GENERANDO MASTER DE COMPARATIVAS (LEYENDAS LIMPIAS) 📊")
     print("="*70 + "\n")
 
     # Bucle principal que genera cada gráfica
@@ -120,7 +120,7 @@ def generar_todas_las_comparativas():
             
             print(f"  [√] ¡Guardada en: {output_path}")
 
-    print("\n[√] Proceso completado.")
+    print("\n[√] Proceso completado. ¡Todas las gráficas listas para el TFG!")
 
 if __name__ == "__main__":
     generar_todas_las_comparativas()
