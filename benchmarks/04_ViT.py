@@ -39,7 +39,7 @@ def run_vit_metropolis():
         is_complex=False
     )
 
-    # Metropolis es lo que nos dará una autocorrelación > 0
+    
     sampler = nk.sampler.MetropolisLocal(
         hi,
         n_chains=1, # Número de exploradores en paralelo
