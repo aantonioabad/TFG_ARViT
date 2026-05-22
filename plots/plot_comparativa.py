@@ -57,3 +57,27 @@ def plot_comparativa_modelos():
         ax.set_ylabel(r"Energía, $\langle H \rangle$")
         
         # --- LOS CORTES DE LOS EJES (ZOOM) ESTÁN AQUÍ ---
+        # 1. Cortar el eje X en la época 250
+        ax.set_xlim(0, 250)
+        
+        # 2. Cortar el eje Y para evitar el pico inicial. 
+        # Ponemos el límite inferior un poco por debajo de la energía exacta (-12.37)
+        # Y el superior en -10.0 (así eliminamos las energías de -5.6 que chafaban la gráfica)
+        ax.set_ylim(E_exacta - 0.05, -10.0) 
+        # -----------------------------------------------
+
+        ax.grid(True, linestyle='-', color='#E5E8E8', linewidth=1.0)
+        ax.yaxis.set_major_locator(MaxNLocator(nbins=12))
+        
+        ax.legend(loc="upper right", frameon=True, fontsize=10, facecolor='#FDFEFE', edgecolor='#BDC3C7')
+        
+        # He cambiado ligeramente el nombre de salida para que distingas la gráfica con zoom
+        output_path = os.path.join(current_dir, "comparativa_03_05_06_zoom.png")
+        plt.tight_layout()
+        plt.savefig(output_path, dpi=300, bbox_inches='tight')
+        plt.close()
+        
+        print(f"\n  [√] ¡Gráfica guardada con éxito en: {output_path}")
+
+if __name__ == "__main__":
+    plot_comparativa_modelos()
