@@ -18,19 +18,16 @@ from physics.hamiltonian import get_Hamiltonian
 from physics.utils import BestIterKeeper
 from physics.utils import plot_markov_autocorrelation
 
-def run_lstm_direct():
-    print(">>> BENCHMARK 03: LSTMNet + DIRECT SAMPLING")
+def run_rbm_direct():
+    print(">>> BENCHMARK 03: RBM + DIRECT SAMPLING")
     print("---------------------------------------------------------")
     
     N = 10
     hi = nk.hilbert.Spin(s=0.5, N=N)
     H = get_Hamiltonian(N, J=1.0, alpha=3.0, hilbert=hi)
 
-    model = nk.models.RBM(
-        hilbert=hi,
-        layers=2,
-        features=16
-    )
+    
+    model = nk.models.RBM(alpha=1, param_dtype=float)
 
     # Sampler Autoregresivo Directo
     sampler = nk.sampler.ARDirectSampler(hi)
@@ -49,7 +46,7 @@ def run_lstm_direct():
     print("Iniciando benchmark cronometrado...")
     start_time = time.time()
     
-    log = nk.logging.JsonLog("resultado_benchmark_03_LSTM", save_params=False)
+    log = nk.logging.JsonLog("resultado_benchmark_03_RBM", save_params=False)
     gs.run(n_iter=1000, out=log, show_progress=True, callback=keeper.update)
     
     jax.block_until_ready(vstate.variables)
@@ -83,15 +80,15 @@ def run_lstm_direct():
     print(f"Autocorrelación τ : {tau_c:.4f}")
     print(f"Tiempo puro       : {end_time - start_time:.2f} s")
     
-    benchmark_title = "RNN + Direct"
+    benchmark_title = "RBM + Direct"
         
     plot_markov_autocorrelation(
         vstate=vstate, 
         H=H, 
         benchmark_name=benchmark_title, 
         max_lag=40, 
-        filename="autocorr_03_RNN.png" 
+        filename="autocorr_03_RBM.png" 
         ) 
 
 if __name__ == "__main__":
-    run_lstm_direct()
+    run_rbm_direct()
