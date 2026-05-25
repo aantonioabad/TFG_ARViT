@@ -26,7 +26,7 @@ def run_lstm_direct():
     hi = nk.hilbert.Spin(s=0.5, N=N)
     H = get_Hamiltonian(N, J=1.0, alpha=3.0, hilbert=hi)
 
-    model = nk.experimental.models.FastLSTMNet(
+    model = nk.models.RBM(
         hilbert=hi,
         layers=2,
         features=16
