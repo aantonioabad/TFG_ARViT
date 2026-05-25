@@ -46,11 +46,21 @@ def generar_todas_las_comparativas_top():
     E_exacta_label = -12.3253 
 
     # ==============================================================================
-    # AQUÍ VAN TUS ENFRENTAMIENTOS (PON LOS QUE NECESITES)
+    # AQUÍ VAN TUS ENFRENTAMIENTOS
+    
     enfrentamientos = [
-        {"pareja": ["ViT", "ARViT"], "titulo": "Comparativa: ViT vs ARViT", "archivo": "comparativa_04_vs_06B.png", "x_max": 300},
-        #{"pareja": ["RBM", "ViT", "ARNN (Metropolis)"], "titulo": "Comparativa Muestreo Metropolis: RBM vs ViT vs ARNN", "archivo": "comparativa_03_vs_04_vs_05.png", "x_max": 450},
-        #{"pareja": ["ARNN (Metropolis)", "ARNN", "ARViT"], "titulo": "Comparativa de Convergencia: Modelos AR", "archivo": "comparativa_05_vs_06_vs_06B.png", "x_max": 300}
+        {
+            "pareja": ["ARNN (Metropolis)", "ARNN"],
+            "titulo": "Comparativa de Convergencia: ARNN (Metropolis vs Directo)",
+            "archivo": "comparativa_05_vs_06.png",
+            "x_max": 900  # 900 épocas para poder ver la convergencia completa de Metropolis
+        },
+        {
+            "pareja": ["ARNN (Metropolis)", "ARNN", "ARViT"],
+            "titulo": "Comparativa de Convergencia: ARNN (Metropolis) vs ARNN vs ARViT",
+            "archivo": "comparativa_05_vs_06_vs_06B.png",
+            "x_max": 900  # 900 épocas para ver la evolución de los tres modelos juntos
+        }
     ]
     # ==============================================================================
 
