@@ -53,13 +53,13 @@ def generar_todas_las_comparativas_top():
             "pareja": ["ARNN (Metropolis)", "ARNN"],
             "titulo": "Comparativa de Convergencia: ARNN (Metropolis vs Directo)",
             "archivo": "comparativa_05_vs_06.png",
-            "x_max": 900  # 900 épocas para poder ver la convergencia completa de Metropolis
+            "x_max": 100  # 900 épocas para poder ver la convergencia completa de Metropolis
         },
         {
-            "pareja": ["ARNN (Metropolis)", "ARNN", "ARViT"],
-            "titulo": "Comparativa de Convergencia: ARNN (Metropolis) vs ARNN vs ARViT",
-            "archivo": "comparativa_05_vs_06_vs_06B.png",
-            "x_max": 900  # 900 épocas para ver la evolución de los tres modelos juntos
+            "pareja": ["ViT", "ARNN", "ARViT"],
+            "titulo": "Comparativa de Convergencia: ViT vs ARNN vs ARViT",
+            "archivo": "comparativa_04_vs_06_vs_06B.png",
+            "x_max": 400  # 900 épocas para ver la evolución de los tres modelos juntos
         }
     ]
     # ==============================================================================
