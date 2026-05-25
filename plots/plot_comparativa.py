@@ -4,8 +4,22 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 
+def buscar_log(nombre_base, root_dir):
+    """Busca el log en varias carpetas posibles y con diferentes sufijos"""
+    posibles_rutas = [
+        os.path.join(root_dir, nombre_base),
+        os.path.join(root_dir, "benchmarks", nombre_base),
+        os.path.join(os.getcwd(), nombre_base),
+        
+        os.path.join(root_dir, nombre_base.replace(".log", "_RBM.log")),
+        os.path.join(root_dir, "benchmarks", nombre_base.replace(".log", "_RBM.log"))
+    ]
+    for ruta in posibles_rutas:
+        if os.path.exists(ruta):
+            return ruta
+    return posibles_rutas[0] # Devuelve la primera por defecto para que salte el error limpio si no existe
+
 def generar_todas_las_comparativas_top():
-    # 1. Detección robusta del directorio raíz
     current_dir = os.path.dirname(os.path.abspath(__file__)) if '__file__' in globals() else os.getcwd()
     
     if os.path.basename(current_dir) in ['benchmarks', 'plots']:
@@ -13,39 +27,20 @@ def generar_todas_las_comparativas_top():
     else:
         root_dir = current_dir
 
-    # 2. Diccionario con todos los modelos, rutas y colores
+    # 2. Diccionario con búsqueda dinámica de rutas
     modelos = {
-        "Jastrow": {
-            "ruta": os.path.join(root_dir, "resultado_benchmark_02.log"),
-            "color": "#34495E"
-        },
-        "RBM": {
-            "ruta": os.path.join(root_dir, "resultado_benchmark_03.log"),
-            "color": "#E74C3C"
-        },
-        "ViT": {
-            "ruta": os.path.join(root_dir, "resultado_benchmark_04.log"),
-            "color": "#8E44AD"
-        },
-        "ARNN (Metropolis)": {
-            "ruta": os.path.join(root_dir, "resultado_benchmark_05.log"),
-            "color": "#F39C12"
-        },
-        "ARNN": {
-            "ruta": os.path.join(root_dir, "resultado_benchmark_06.log"),
-            "color": "#2E86C1"
-        },
-        "ARViT": {
-            "ruta": os.path.join(root_dir, "resultado_benchmark_06B.log"),
-            "color": "#27AE60"
-        }
+        "Jastrow": {"ruta": buscar_log("resultado_benchmark_02.log", root_dir), "color": "#34495E"},
+        "RBM": {"ruta": buscar_log("resultado_benchmark_03.log", root_dir), "color": "#E74C3C"},
+        "ViT": {"ruta": buscar_log("resultado_benchmark_04.log", root_dir), "color": "#8E44AD"},
+        "ARNN (Metropolis)": {"ruta": buscar_log("resultado_benchmark_05.log", root_dir), "color": "#F39C12"},
+        "ARNN": {"ruta": buscar_log("resultado_benchmark_06.log", root_dir), "color": "#2E86C1"},
+        "ARViT": {"ruta": buscar_log("resultado_benchmark_06B.log", root_dir), "color": "#27AE60"}
     }
 
-    # Valor de energía exacta
     E_exacta = -12.32525024471575
     E_exacta_label = -12.3253 
 
-    # 3. Lista con las 7 comparativas (con sus X límites)
+   
     enfrentamientos = [
         #{"pareja": ["RBM", "ARNN"], "titulo": "Comparativa de Convergencia: RBM vs ARNN", "archivo": "comparativa_03_vs_06.png", "x_max": 900},
         #{"pareja": ["RBM", "ViT"], "titulo": "Comparativa de Convergencia: RBM vs ViT", "archivo": "comparativa_03_vs_04.png", "x_max": 900},
