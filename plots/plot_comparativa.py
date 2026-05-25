@@ -48,9 +48,9 @@ def generar_todas_las_comparativas_top():
     # ==============================================================================
     # AQUÍ VAN TUS ENFRENTAMIENTOS (PON LOS QUE NECESITES)
     enfrentamientos = [
-        {"pareja": ["Jastrow", "RBM"], "titulo": "Comparativa: Jastrow vs RBM", "archivo": "comparativa_02_vs_03.png", "x_max": 450},
-        {"pareja": ["RBM", "ViT", "ARNN (Metropolis)"], "titulo": "Comparativa Muestreo Metropolis: RBM vs ViT vs ARNN", "archivo": "comparativa_03_vs_04_vs_05.png", "x_max": 450},
-        {"pareja": ["ARNN (Metropolis)", "ARNN", "ARViT"], "titulo": "Comparativa de Convergencia: Modelos AR", "archivo": "comparativa_05_vs_06_vs_06B.png", "x_max": 300}
+        {"pareja": ["ViT", "ARViT"], "titulo": "Comparativa: ViT vs ARViT", "archivo": "comparativa_04_vs_06B.png", "x_max": 300},
+        #{"pareja": ["RBM", "ViT", "ARNN (Metropolis)"], "titulo": "Comparativa Muestreo Metropolis: RBM vs ViT vs ARNN", "archivo": "comparativa_03_vs_04_vs_05.png", "x_max": 450},
+        #{"pareja": ["ARNN (Metropolis)", "ARNN", "ARViT"], "titulo": "Comparativa de Convergencia: Modelos AR", "archivo": "comparativa_05_vs_06_vs_06B.png", "x_max": 300}
     ]
     # ==============================================================================
 
