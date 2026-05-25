@@ -18,8 +18,8 @@ from physics.hamiltonian import get_Hamiltonian
 from physics.utils import BestIterKeeper
 from physics.utils import plot_markov_autocorrelation
 
-def run_rbm_direct():
-    print(">>> BENCHMARK 03: RBM + DIRECT SAMPLING")
+def run_rbm():
+    print(">>> BENCHMARK 03: RBM + Metropolis")
     print("---------------------------------------------------------")
     
     N = 10
@@ -30,8 +30,11 @@ def run_rbm_direct():
     model = nk.models.RBM(alpha=1, param_dtype=float)
 
 
-    # Sampler Autoregresivo Directo
-    sampler = nk.sampler.MetropolisLocal(hi)
+    sampler = nk.sampler.MetropolisLocal(
+        hi,
+        n_chains=1, # Número de exploradores en paralelo
+        sweep_size=1   # Muestras que se dejan pasar entre extracciones
+    )
     vstate = nk.vqs.MCState(sampler, model, n_samples=2048, seed=42)
     
     # Optimizador y Driver
@@ -81,7 +84,7 @@ def run_rbm_direct():
     print(f"Autocorrelación τ : {tau_c:.4f}")
     print(f"Tiempo puro       : {end_time - start_time:.2f} s")
     
-    benchmark_title = "RBM + Direct"
+    benchmark_title = "RBM + Metropolis"
         
     plot_markov_autocorrelation(
         vstate=vstate, 
@@ -92,4 +95,4 @@ def run_rbm_direct():
         ) 
 
 if __name__ == "__main__":
-    run_rbm_direct()
+    run_rbm()
