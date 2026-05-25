@@ -18,27 +18,27 @@ def generar_todas_las_comparativas_top():
     modelos = {
         "Jastrow": {
             "ruta": os.path.join(carpeta_general, "resultado_benchmark_02.log"), 
-            "color": "#34495E", "err_str": "0.01\%", "pearson_str": "0.0105"
+            "color": "#34495E", "err_str": "0.01%", "pearson_str": "0.0105"
         },
         "RBM": {
             "ruta": os.path.join(carpeta_general, "resultado_benchmark_03.log"), 
-            "color": "#E74C3C", "err_str": "0.09\%", "pearson_str": "0.0365"
+            "color": "#E74C3C", "err_str": "0.09%", "pearson_str": "0.0365"
         },
         "ViT": {
             "ruta": os.path.join(carpeta_general, "resultado_benchmark_04.log"), 
-            "color": "#8E44AD", "err_str": "0.00\%", "pearson_str": "0.0090"
+            "color": "#8E44AD", "err_str": "0.00%", "pearson_str": "0.0090"
         },
         "ARNN (Metropolis)": {
             "ruta": os.path.join(carpeta_general, "resultado_benchmark_05.log"), 
-            "color": "#F39C12", "err_str": "0.02\%", "pearson_str": "0.0116"
+            "color": "#F39C12", "err_str": "0.02%", "pearson_str": "0.0116"
         },
         "ARNN": {
             "ruta": os.path.join(carpeta_general, "resultado_benchmark_06.log"), 
-            "color": "#2E86C1", "err_str": "0.07\%", "pearson_str": "0.0166"
+            "color": "#2E86C1", "err_str": "0.07%", "pearson_str": "0.0166"
         },
         "ARViT": {
             "ruta": os.path.join(carpeta_general, "resultado_benchmark_06B.log"), 
-            "color": "#27AE60", "err_str": "0.00\%", "pearson_str": "0.0114"
+            "color": "#27AE60", "err_str": "0.00%", "pearson_str": "0.0114"
         }
     }
 
