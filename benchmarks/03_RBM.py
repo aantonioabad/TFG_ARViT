@@ -27,11 +27,11 @@ def run_rbm_direct():
     H = get_Hamiltonian(N, J=1.0, alpha=3.0, hilbert=hi)
 
     
-    model = nk.models.ARRBM(alpha=1, param_dtype=float)
-    
+    model = nk.models.RBM(alpha=1, param_dtype=float)
+
 
     # Sampler Autoregresivo Directo
-    sampler = nk.sampler.ARDirectSampler(hi)
+    sampler = nk.sampler.MetropolisLocal(hi)
     vstate = nk.vqs.MCState(sampler, model, n_samples=2048, seed=42)
     
     # Optimizador y Driver
