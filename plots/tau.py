@@ -1,79 +1,84 @@
-import json
 import os
-import numpy as np
+import sys
+import jax
+import netket as nk
+import optax
 
-def extraer_autocorrelacion_mejor_epoca():
-    # Ruta de los logs en tu Drive
-    drive_dir = "/content/drive/MyDrive/TFG_ARViT/Fase_ J_alpha/"
+# Ajuste de rutas
+current_dir = os.path.dirname(os.path.abspath(__file__)) if '__file__' in globals() else os.getcwd()
+parent_dir = os.path.dirname(current_dir)
+sys.path.append(parent_dir)
+
+from physics.hamiltonian import get_Hamiltonian
+from models.vitB import ARSpinViT_Causal
+from physics.utils import BestIterKeeper 
+from physics.utils import plot_markov_autocorrelation
+
+def run_metropolis_autocorr_plot():
+    print(">>> GENERANDO GRÁFICA DE AUTOCORRELACIÓN: METROPOLIS MCMC")
+    print(">>> Punto Crítico: J = 7.0 | alpha = 6.0")
+    print("---------------------------------------------------------")
     
-    experimentos = [
-        (6.0, 7.0),
-        (6.0, -4.0),
-        (2.5, -4.0),
-        (2.5, 2.75),
-        (1.0, -2.0),
-        (1.0, 7.0)
-    ]
+    N = 10
+    J_val = 7.0
+    alpha_val = 6.0
+    
+    hi = nk.hilbert.Spin(s=0.5, N=N)
+    H = get_Hamiltonian(N, J=J_val, alpha=alpha_val, hilbert=hi)
 
-    print("\n" + "="*85)
-    print("📊 TIEMPO DE AUTOCORRELACIÓN EN LA MEJOR ÉPOCA (BEST ITER KEEPER) 📊")
-    print("="*85)
-    print(f"{'J':>6} | {'alpha':>6} | {'Mejor Época':>12} | {'E Mínima':>14} | {'τ_c (Mejor Época)':>20}")
-    print("-" * 85)
+    model = ARSpinViT_Causal(
+        hilbert=hi,
+        embedding_d=8,
+        n_heads=2,
+        n_blocks=2,
+        n_ffn_layers=1
+    )
 
-    for alpha, J in experimentos:
-        log_path = os.path.join(drive_dir, f"resultado_metropolis_alpha{alpha}_J{J}.log")
-        
-        if os.path.exists(log_path):
-            with open(log_path, 'r') as f:
-                data = json.load(f)
-            
-            try:
-                energy_dict = data.get("Energy", {})
-                
-                # 1. Búsqueda robusta de la clave de Energía (Mean, mean o value)
-                if "Mean" in energy_dict:
-                    e_mean_list = energy_dict["Mean"]
-                elif "mean" in energy_dict:
-                    e_mean_list = energy_dict["mean"]
-                elif "value" in energy_dict:
-                    e_mean_list = energy_dict["value"]
-                else:
-                    print(f"{J:6.2f} | {alpha:6.2f} | Error: Claves disponibles -> {list(energy_dict.keys())}")
-                    continue
-                
-                # Saneamos el formato
-                energies = []
-                for e in e_mean_list:
-                    if isinstance(e, dict):
-                        energies.append(e.get("real", e.get("Mean", e.get("mean", 0.0))))
-                    elif isinstance(e, complex):
-                        energies.append(e.real)
-                    else:
-                        energies.append(float(e))
-                
-                # 2. Encontramos el índice de la mejor época
-                best_idx = int(np.argmin(energies))
-                best_energy = energies[best_idx]
-                
-                # 3. Búsqueda robusta del tiempo de autocorrelación
-                if "TauCorr" in energy_dict:
-                    tau_list = energy_dict["TauCorr"]
-                elif "tau_corr" in energy_dict:
-                    tau_list = energy_dict["tau_corr"]
-                else:
-                    tau_list = [0.0] * len(energies) # Fallback si no hay autocorrelación
-                    
-                best_tau = tau_list[best_idx]
-                
-                print(f"{J:6.2f} | {alpha:6.2f} | {best_idx:12d} | {best_energy:14.6f} | {best_tau:20.4f}")
-                
-            except Exception as e:
-                print(f"{J:6.2f} | {alpha:6.2f} | Error inesperado al leer: {e}")
-        else:
-            print(f"{J:6.2f} | {alpha:6.2f} | Archivo log no encontrado")
-            
-    print("="*85 + "\n")
+    # USAMOS METROPOLIS LOCAL
+    sampler = nk.sampler.MetropolisLocal(
+        hi,
+        n_chains=1, # Número de exploradores en paralelo
+        sweep_size=1   # Muestras que se dejan pasar entre extracciones
+    )
+    vstate = nk.vqs.MCState(sampler, model, n_samples=2048, seed=42)
+    
+    optimizer = optax.adam(learning_rate=0.001)
+    gs = nk.driver.VMC_SR(H, optimizer, variational_state=vstate, diag_shift=0.1)
+    keeper = BestIterKeeper(Hamiltonian=H, N=N, baseline=1e-6)
+
+    print("Entrenando 500 épocas para recrear el estado crítico (aprox. 5 min)...")
+    # No guardamos log en disco porque solo queremos la gráfica al final
+    gs.run(n_iter=500, show_progress=True, callback=keeper.update)
+    
+    print("\nRestaurando la mejor época encontrada...")
+    vstate.parameters = keeper.best_state.parameters
+
+    # --- GENERACIÓN DE LA GRÁFICA ---
+    print("Calculando y dibujando la autocorrelación...")
+    
+    # Aseguramos que el directorio plots exista
+    out_dir = "/content/TFG_ARViT/plots/"
+    os.makedirs(out_dir, exist_ok=True)
+    out_file = os.path.join(out_dir, "autocorr_Metropolis_J7_alpha6.png")
+    
+    benchmark_title = "Metropolis MCMC (J=7.0, alpha=6.0)"
+    
+    plot_markov_autocorrelation(
+        vstate=vstate, 
+        H=H, 
+        benchmark_name=benchmark_title, 
+        max_lag=100,  # <-- VITAL: Aumentado a 100 para ver la caída completa de un tau=23
+        filename=out_file 
+    )
+    
+    print(f"\n[√] ¡Misión cumplida! Gráfica guardada en: {out_file}")
+    
+    # Copiar a Drive automáticamente por comodidad
+    drive_dest = "/content/drive/MyDrive/TFG_ARViT/plots/"
+    if os.path.exists("/content/drive/MyDrive/"):
+        os.makedirs(drive_dest, exist_ok=True)
+        os.system(f"cp {out_file} {drive_dest}")
+        print(f"[√] Copia de seguridad guardada en tu Drive.")
 
 if __name__ == "__main__":
-    extraer_autocorrelacion_mejor_epoca()
+    run_metropolis_autocorr_plot()
