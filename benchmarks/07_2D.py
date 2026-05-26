@@ -31,8 +31,8 @@ def get_Hamiltonian_2D(Lx: int, Ly: int, J: float, alpha: float, h: float = 1.0,
     distances = graph.distances()
     H = nk.operator.LocalOperator(hilbert)
     
-    sigmax = jnp.array([[0, 1], [1, 0]])
-    sigmaz = jnp.array([[1, 0], [0, -1]])
+    sigmax = [[0, 1], [1, 0]]
+    sigmaz = [[1, 0], [0, -1]]
     
     # Término de campo transversal
     for i in range(N):
