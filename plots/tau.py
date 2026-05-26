@@ -8,80 +8,64 @@ def plot_energia_convergencia(log_path, exact_energy=None, save_path=None, title
         print(f"[X] No se encuentra el archivo: {log_path}")
         return
 
-    # 1. Leer el archivo JSON con sistema de AUTO-REPARACIÓN
-    try:
-        with open(log_path, 'r') as f:
-            data = json.load(f)
-    except json.JSONDecodeError:
-        print("[!] JSON malformado detectado (probablemente múltiples ejecuciones). Autoreparando...")
-        with open(log_path, 'r') as f:
-            raw_text = f.read().strip()
+    # Extracción robusta de JSONs concatenados
+    with open(log_path, 'r') as f:
+        text = f.read().strip()
         
-        # Reemplazamos los choques de diccionarios por comas y envolvemos en una lista
-        fixed_text = "[" + raw_text.replace("}\n{", "},\n{") + "]"
+    decoder = json.JSONDecoder()
+    data_list = []
+    idx = 0
+    
+    while idx < len(text):
+        text_substr = text[idx:].lstrip()
+        if not text_substr:
+            break
         try:
-            data_list = json.loads(fixed_text)
-            # Nos quedamos siempre con la última simulación registrada
-            data = data_list[-1] 
-            print("[√] Archivo reparado con éxito.")
-        except Exception as e:
-            print(f"[X] No se pudo reparar el JSON. Error: {e}")
-            return
+            obj, next_idx = decoder.raw_decode(text_substr)
+            data_list.append(obj)
+            idx += next_idx
+        except json.JSONDecodeError:
+            break
+            
+    if not data_list:
+        print("[X] Imposible extraer ningún dato válido del log.")
+        return
+        
+    data = data_list[-1]
 
-    # 2. Extraer los datos de energía de forma robusta
+    # Procesamiento de la energía
     energy_dict = data.get("Energy", {})
-    if "Mean" in energy_dict:
-        e_mean_list = energy_dict["Mean"]
-    elif "mean" in energy_dict:
-        e_mean_list = energy_dict["mean"]
-    elif "value" in energy_dict:
-        e_mean_list = energy_dict["value"]
-    else:
-        print("[X] No se encontraron datos de energía en el log.")
+    e_mean_list = energy_dict.get("Mean", energy_dict.get("mean", energy_dict.get("value", [])))
+
+    if not e_mean_list:
+        print("[X] No se encontraron datos de energía en la última ejecución.")
         return
 
-    # Sanear los datos (sacar la parte real)
-    energies = []
-    for e in e_mean_list:
-        if isinstance(e, dict):
-            energies.append(e.get("real", e.get("Mean", e.get("mean", 0.0))))
-        elif isinstance(e, complex):
-            energies.append(e.real)
-        else:
-            energies.append(float(e))
-
+    energies = [e.get("real", e.get("Mean", e.get("mean", 0.0))) if isinstance(e, dict) else (e.real if isinstance(e, complex) else float(e)) for e in e_mean_list]
     iters = np.arange(len(energies))
 
-    # 3. Configuración estética de la gráfica
+    # Generación de la gráfica
     plt.figure(figsize=(10, 6))
-    
-    # Pintar la curva de VMC
     plt.plot(iters, energies, label="Energía Calculada (VMC)", color='#1f77b4', linewidth=2)
 
-    # Pintar la línea de energía exacta
     if exact_energy is not None:
         plt.axhline(y=exact_energy, color='#d62728', linestyle='--', linewidth=2, 
                     label=f"Energía Exacta ({exact_energy:.4f})")
 
-    # Detalles visuales
     plt.xlabel("Épocas (Iteraciones)", fontsize=13, fontweight='bold')
     plt.ylabel("Energía $E$", fontsize=13, fontweight='bold')
     plt.title(title, fontsize=15, pad=15)
-    
     plt.grid(True, linestyle=':', alpha=0.7)
     plt.legend(fontsize=12, loc='upper right')
-    
     plt.tight_layout()
 
-    # 4. Guardar y mostrar
     if save_path:
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
-        print(f"[√] Gráfica guardada: {save_path}")
+        print(f"[√] Gráfica de alta resolución guardada en: {save_path}")
     
     plt.show()
 
 if __name__ == "__main__":
-    # --- CONFIGURACIÓN PARA TU ÚLTIMO BENCHMARK 2D ---
     archivo_log = "/content/TFG_ARViT/resultado_benchmark_2D_ARViT.log" 
     energia_exacta_2D = -29.451812
     ruta_guardado = "/content/TFG_ARViT/convergencia_energia_2D.png"
@@ -93,5 +77,4 @@ if __name__ == "__main__":
         title="Convergencia de la Energía: ARViT Malla 2D (4x4)"
     )
     
-    # Copia de seguridad automática a tu Drive
     os.system(f"cp {ruta_guardado} /content/drive/MyDrive/TFG_ARViT/plots/")
