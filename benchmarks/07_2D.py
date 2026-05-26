@@ -6,6 +6,7 @@ import jax.numpy as jnp
 import scipy.sparse.linalg
 import netket as nk
 import optax
+import numpy as np
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
@@ -31,8 +32,8 @@ def get_Hamiltonian_2D(Lx: int, Ly: int, J: float, alpha: float, h: float = 1.0,
     distances = graph.distances()
     H = nk.operator.LocalOperator(hilbert)
     
-    sigmax = [[0, 1], [1, 0]]
-    sigmaz = [[1, 0], [0, -1]]
+    sigmax = np.array([[0, 1], [1, 0]])
+    sigmaz = np.array([[1, 0], [0, -1]])
     
     # Término de campo transversal
     for i in range(N):
