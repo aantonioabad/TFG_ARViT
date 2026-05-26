@@ -67,17 +67,14 @@ def plot_energia_convergencia(log_path, exact_energy=None, save_path=None, title
 if __name__ == "__main__":
     # --- CONFIGURACIÓN PARA TU ÚLTIMO BENCHMARK 2D ---
     
-    # Busca el log en tu carpeta raíz de Colab o en tu Drive
-    archivo_log = "/content/resultado_benchmark_2D_ARViT.log" 
-    
-    # Si lo tienes en Drive, descomenta esta línea y comenta la de arriba:
-    # archivo_log = "/content/drive/MyDrive/TFG_ARViT/resultado_benchmark_2D_ARViT.log"
+    # [CORREGIDO] Añadimos TFG_ARViT a la ruta de búsqueda
+    archivo_log = "/content/TFG_ARViT/resultado_benchmark_2D_ARViT.log" 
     
     # La energía exacta que te salió en la terminal
     energia_exacta_2D = -29.451812
     
-    # Dónde guardar la foto
-    ruta_guardado = "/content/convergencia_energia_2D.png"
+    # Dónde guardar la foto (la guardamos también en la carpeta TFG_ARViT)
+    ruta_guardado = "/content/TFG_ARViT/convergencia_energia_2D.png"
     
     plot_energia_convergencia(
         log_path=archivo_log, 
