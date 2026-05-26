@@ -1,84 +1,90 @@
+import json
 import os
-import sys
-import jax
-import netket as nk
-import optax
+import numpy as np
+import matplotlib.pyplot as plt
 
-# Ajuste de rutas
-current_dir = os.path.dirname(os.path.abspath(__file__)) if '__file__' in globals() else os.getcwd()
-parent_dir = os.path.dirname(current_dir)
-sys.path.append(parent_dir)
+def plot_energia_convergencia(log_path, exact_energy=None, save_path=None, title="Convergencia de la Energía"):
+    if not os.path.exists(log_path):
+        print(f"[X] No se encuentra el archivo: {log_path}")
+        return
 
-from physics.hamiltonian import get_Hamiltonian
-from models.vitB import ARSpinViT_Causal
-from physics.utils import BestIterKeeper 
-from physics.utils import plot_markov_autocorrelation
+    # 1. Leer el archivo JSON
+    with open(log_path, 'r') as f:
+        data = json.load(f)
 
-def run_metropolis_autocorr_plot():
-    print(">>> GENERANDO GRÁFICA DE AUTOCORRELACIÓN: METROPOLIS MCMC")
-    print(">>> Punto Crítico: J = 7.0 | alpha = 6.0")
-    print("---------------------------------------------------------")
-    
-    N = 10
-    J_val = 7.0
-    alpha_val = 6.0
-    
-    hi = nk.hilbert.Spin(s=0.5, N=N)
-    H = get_Hamiltonian(N, J=J_val, alpha=alpha_val, hilbert=hi)
+    # 2. Extraer los datos de energía de forma robusta
+    energy_dict = data.get("Energy", {})
+    if "Mean" in energy_dict:
+        e_mean_list = energy_dict["Mean"]
+    elif "mean" in energy_dict:
+        e_mean_list = energy_dict["mean"]
+    elif "value" in energy_dict:
+        e_mean_list = energy_dict["value"]
+    else:
+        print("[X] No se encontraron datos de energía en el log.")
+        return
 
-    model = ARSpinViT_Causal(
-        hilbert=hi,
-        embedding_d=8,
-        n_heads=2,
-        n_blocks=2,
-        n_ffn_layers=1
-    )
+    # Sanear los datos (sacar la parte real)
+    energies = []
+    for e in e_mean_list:
+        if isinstance(e, dict):
+            energies.append(e.get("real", e.get("Mean", e.get("mean", 0.0))))
+        elif isinstance(e, complex):
+            energies.append(e.real)
+        else:
+            energies.append(float(e))
 
-    # USAMOS METROPOLIS LOCAL
-    sampler = nk.sampler.MetropolisLocal(
-        hi,
-        n_chains=1, # Número de exploradores en paralelo
-        sweep_size=1   # Muestras que se dejan pasar entre extracciones
-    )
-    vstate = nk.vqs.MCState(sampler, model, n_samples=2048, seed=42)
-    
-    optimizer = optax.adam(learning_rate=0.001)
-    gs = nk.driver.VMC_SR(H, optimizer, variational_state=vstate, diag_shift=0.1)
-    keeper = BestIterKeeper(Hamiltonian=H, N=N, baseline=1e-6)
+    iters = np.arange(len(energies))
 
-    print("Entrenando 500 épocas para recrear el estado crítico (aprox. 5 min)...")
-    # No guardamos log en disco porque solo queremos la gráfica al final
-    gs.run(n_iter=500, show_progress=True, callback=keeper.update)
+    # 3. Configuración estética de la gráfica (Estilo TFG)
+    plt.figure(figsize=(10, 6))
     
-    print("\nRestaurando la mejor época encontrada...")
-    vstate.parameters = keeper.best_state.parameters
+    # Pintar la curva de VMC
+    plt.plot(iters, energies, label="Energía Calculada (VMC)", color='#1f77b4', linewidth=2)
 
-    # --- GENERACIÓN DE LA GRÁFICA ---
-    print("Calculando y dibujando la autocorrelación...")
+    # Pintar la línea de energía exacta (si se proporciona)
+    if exact_energy is not None:
+        plt.axhline(y=exact_energy, color='#d62728', linestyle='--', linewidth=2, 
+                    label=f"Energía Exacta ({exact_energy:.4f})")
+
+    # Detalles de los ejes y leyendas
+    plt.xlabel("Épocas (Iteraciones)", fontsize=13, fontweight='bold')
+    plt.ylabel("Energía $E$", fontsize=13, fontweight='bold')
+    plt.title(title, fontsize=15, pad=15)
     
-    # Aseguramos que el directorio plots exista
-    out_dir = "/content/TFG_ARViT/plots/"
-    os.makedirs(out_dir, exist_ok=True)
-    out_file = os.path.join(out_dir, "autocorr_Metropolis_J7_alpha6.png")
+    plt.grid(True, linestyle=':', alpha=0.7)
+    plt.legend(fontsize=12, loc='upper right')
     
-    benchmark_title = "Metropolis MCMC (J=7.0, alpha=6.0)"
+    plt.tight_layout()
+
+    # 4. Guardar y mostrar
+    if save_path:
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        print(f"[√] Gráfica de alta resolución guardada en: {save_path}")
     
-    plot_markov_autocorrelation(
-        vstate=vstate, 
-        H=H, 
-        benchmark_name=benchmark_title, 
-        max_lag=100,  # <-- VITAL: Aumentado a 100 para ver la caída completa de un tau=23
-        filename=out_file 
-    )
-    
-    print(f"\n[√] ¡Misión cumplida! Gráfica guardada en: {out_file}")
-    
-    # Copiar a Drive automáticamente por comodidad
-    drive_dest = "/content/drive/MyDrive/TFG_ARViT/plots/"
-    if os.path.exists("/content/drive/MyDrive/"):
-        os.makedirs(drive_dest, exist_ok=True)
-        os.system(f"cp {out_file} {drive_dest}")
-        print(f"[√] Copia de seguridad guardada en tu Drive.")
+    plt.show()
 
 if __name__ == "__main__":
-    run_metropolis_autocorr_plot()
+    # --- CONFIGURACIÓN PARA TU ÚLTIMO BENCHMARK 2D ---
+    
+    # Busca el log en tu carpeta raíz de Colab o en tu Drive
+    archivo_log = "/content/resultado_benchmark_2D_ARViT.log" 
+    
+    # Si lo tienes en Drive, descomenta esta línea y comenta la de arriba:
+    # archivo_log = "/content/drive/MyDrive/TFG_ARViT/resultado_benchmark_2D_ARViT.log"
+    
+    # La energía exacta que te salió en la terminal
+    energia_exacta_2D = -29.451812
+    
+    # Dónde guardar la foto
+    ruta_guardado = "/content/convergencia_energia_2D.png"
+    
+    plot_energia_convergencia(
+        log_path=archivo_log, 
+        exact_energy=energia_exacta_2D, 
+        save_path=ruta_guardado,
+        title="Convergencia de la Energía: ARViT Malla 2D (4x4)"
+    )
+    
+    # Copia de seguridad automática a tu Drive
+    os.system(f"cp {ruta_guardado} /content/drive/MyDrive/TFG_ARViT/plots/")
