@@ -6,7 +6,6 @@ def extraer_autocorrelacion_mejor_epoca():
     # Ruta de los logs en tu Drive
     drive_dir = "/content/drive/MyDrive/TFG_ARViT/Fase_ J_alpha/"
     
-    # Los 6 puntos de tu benchmark
     experimentos = [
         (6.0, 7.0),
         (6.0, -4.0),
@@ -30,31 +29,47 @@ def extraer_autocorrelacion_mejor_epoca():
                 data = json.load(f)
             
             try:
-                # 1. Extraemos el histórico de energías
-                e_mean_list = data["Energy"]["mean"]
+                energy_dict = data.get("Energy", {})
                 
-                # Saneamos el formato (por si JAX/NetKet lo guardó como dict con parte real)
+                # 1. Búsqueda robusta de la clave de Energía (Mean, mean o value)
+                if "Mean" in energy_dict:
+                    e_mean_list = energy_dict["Mean"]
+                elif "mean" in energy_dict:
+                    e_mean_list = energy_dict["mean"]
+                elif "value" in energy_dict:
+                    e_mean_list = energy_dict["value"]
+                else:
+                    print(f"{J:6.2f} | {alpha:6.2f} | Error: Claves disponibles -> {list(energy_dict.keys())}")
+                    continue
+                
+                # Saneamos el formato
                 energies = []
                 for e in e_mean_list:
                     if isinstance(e, dict):
-                        energies.append(e.get("real", e.get("mean", 0.0)))
+                        energies.append(e.get("real", e.get("Mean", e.get("mean", 0.0))))
                     elif isinstance(e, complex):
                         energies.append(e.real)
                     else:
                         energies.append(float(e))
                 
-                # 2. Encontramos el índice de la mejor época (mínima energía)
+                # 2. Encontramos el índice de la mejor época
                 best_idx = int(np.argmin(energies))
                 best_energy = energies[best_idx]
                 
-                # 3. Extraemos el TauCorr de esa misma época exacta
-                tau_list = data["Energy"]["TauCorr"]
+                # 3. Búsqueda robusta del tiempo de autocorrelación
+                if "TauCorr" in energy_dict:
+                    tau_list = energy_dict["TauCorr"]
+                elif "tau_corr" in energy_dict:
+                    tau_list = energy_dict["tau_corr"]
+                else:
+                    tau_list = [0.0] * len(energies) # Fallback si no hay autocorrelación
+                    
                 best_tau = tau_list[best_idx]
                 
                 print(f"{J:6.2f} | {alpha:6.2f} | {best_idx:12d} | {best_energy:14.6f} | {best_tau:20.4f}")
                 
-            except KeyError as e:
-                print(f"{J:6.2f} | {alpha:6.2f} | Error: No se encontró la clave {e} en el log")
+            except Exception as e:
+                print(f"{J:6.2f} | {alpha:6.2f} | Error inesperado al leer: {e}")
         else:
             print(f"{J:6.2f} | {alpha:6.2f} | Archivo log no encontrado")
             
