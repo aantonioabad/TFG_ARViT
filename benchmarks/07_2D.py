@@ -106,8 +106,9 @@ def run_arvit_direct_2d():
     logger = nk.logging.JsonLog(log_base, mode="write")
 
     # --- 2. ENTRENAMIENTO ---
-    print("Iniciando entrenamiento VMC (500 iteraciones)...")
-    gs.run(n_iter=500, out=logger, show_progress=True, callback=keeper.update)
+    # [MODIFICADO]: Ahora entrena durante 1000 iteraciones
+    print("Iniciando entrenamiento VMC (1000 iteraciones)...")
+    gs.run(n_iter=1000, out=logger, show_progress=True, callback=keeper.update)
     
     # --- 3. RESTAURACIÓN DE LA MEJOR ÉPOCA ---
     print(f"\n[+] Entrenamiento terminado. Restaurando la mejor iteración...")
@@ -141,30 +142,30 @@ def run_arvit_direct_2d():
     print(f"Fidelidad Cuántica      : {fidelity:.6f}")
     print("=========================================================\n")
     
-    # --- 5. GENERACIÓN DE GRÁFICAS (HASTA ITERACIÓN 300) ---
+    # --- 5. GENERACIÓN DE GRÁFICAS (HASTA ITERACIÓN 750) ---
     print("[*] Generando gráficas profesionales de entrenamiento...")
     log_file_path = log_base + ".log"
     energies = extraer_energias_log(log_file_path)
     
     if energies:
-        # Recortar hasta la iteración 300 (o el máximo disponible si fallase)
-        limit = min(len(energies), 300)
-        energies_300 = energies[:limit]
-        iters_300 = np.arange(limit)
+        # [MODIFICADO]: Recortar hasta la iteración 750 (o el máximo disponible)
+        limit = min(len(energies), 750)
+        energies_plot = energies[:limit]
+        iters_plot = np.arange(limit)
         
         # Calcular el error absoluto época a época
-        abs_errors_300 = np.abs(np.array(energies_300) - exact_energy)
+        abs_errors_plot = np.abs(np.array(energies_plot) - exact_energy)
 
         # Gráfica 1: Convergencia de Energía
         plt.figure(figsize=(10, 6))
-        plt.plot(iters_300, energies_300, label="Energía VMC", color='#1f77b4', linewidth=2)
+        plt.plot(iters_plot, energies_plot, label="Energía VMC", color='#1f77b4', linewidth=2)
         plt.axhline(y=exact_energy, color='#d62728', linestyle='--', linewidth=2, label=f"Energía Exacta ({exact_energy:.4f})")
         plt.xlabel("Épocas (Iteraciones)", fontsize=13, fontweight='bold')
         plt.ylabel("Energía $E$", fontsize=13, fontweight='bold')
         plt.title(f"Convergencia de la Energía - Malla 2D 4x4", fontsize=15, pad=15)
         plt.grid(True, linestyle=':', alpha=0.7)
         plt.legend(fontsize=12)
-        plt.xlim(0, 300)
+        plt.xlim(0, 750)  # [MODIFICADO]: Eje X hasta 750
         plt.tight_layout()
         path_conv = os.path.join(current_dir, "convergencia_energia_2D.png")
         plt.savefig(path_conv, dpi=300)
@@ -172,14 +173,14 @@ def run_arvit_direct_2d():
 
         # Gráfica 2: Error Absoluto Logarítmico
         plt.figure(figsize=(10, 6))
-        plt.plot(iters_300, abs_errors_300, label=r"Error Absoluto $|E_{VMC} - E_{Exact}|$", color='#ff7f0e', linewidth=2)
-        plt.yscale('log') # Escala logarítmica clave para ver la caída del error
+        plt.plot(iters_plot, abs_errors_plot, label=r"Error Absoluto $|E_{VMC} - E_{Exact}|$", color='#ff7f0e', linewidth=2)
+        plt.yscale('log') # Escala logarítmica
         plt.xlabel("Épocas (Iteraciones)", fontsize=13, fontweight='bold')
         plt.ylabel("Error Absoluto (Escala Log)", fontsize=13, fontweight='bold')
         plt.title(f"Evolución del Error Absoluto - Malla 2D 4x4", fontsize=15, pad=15)
         plt.grid(True, which="both", linestyle=':', alpha=0.5)
         plt.legend(fontsize=12)
-        plt.xlim(0, 300)
+        plt.xlim(0, 750)  # [MODIFICADO]: Eje X hasta 750
         plt.tight_layout()
         path_err = os.path.join(current_dir, "error_absoluto_2D.png")
         plt.savefig(path_err, dpi=300)
