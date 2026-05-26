@@ -8,9 +8,25 @@ def plot_energia_convergencia(log_path, exact_energy=None, save_path=None, title
         print(f"[X] No se encuentra el archivo: {log_path}")
         return
 
-    # 1. Leer el archivo JSON
-    with open(log_path, 'r') as f:
-        data = json.load(f)
+    # 1. Leer el archivo JSON con sistema de AUTO-REPARACIÓN
+    try:
+        with open(log_path, 'r') as f:
+            data = json.load(f)
+    except json.JSONDecodeError:
+        print("[!] JSON malformado detectado (probablemente múltiples ejecuciones). Autoreparando...")
+        with open(log_path, 'r') as f:
+            raw_text = f.read().strip()
+        
+        # Reemplazamos los choques de diccionarios por comas y envolvemos en una lista
+        fixed_text = "[" + raw_text.replace("}\n{", "},\n{") + "]"
+        try:
+            data_list = json.loads(fixed_text)
+            # Nos quedamos siempre con la última simulación registrada
+            data = data_list[-1] 
+            print("[√] Archivo reparado con éxito.")
+        except Exception as e:
+            print(f"[X] No se pudo reparar el JSON. Error: {e}")
+            return
 
     # 2. Extraer los datos de energía de forma robusta
     energy_dict = data.get("Energy", {})
@@ -36,18 +52,18 @@ def plot_energia_convergencia(log_path, exact_energy=None, save_path=None, title
 
     iters = np.arange(len(energies))
 
-    # 3. Configuración estética de la gráfica (Estilo TFG)
+    # 3. Configuración estética de la gráfica
     plt.figure(figsize=(10, 6))
     
     # Pintar la curva de VMC
     plt.plot(iters, energies, label="Energía Calculada (VMC)", color='#1f77b4', linewidth=2)
 
-    # Pintar la línea de energía exacta (si se proporciona)
+    # Pintar la línea de energía exacta
     if exact_energy is not None:
         plt.axhline(y=exact_energy, color='#d62728', linestyle='--', linewidth=2, 
                     label=f"Energía Exacta ({exact_energy:.4f})")
 
-    # Detalles de los ejes y leyendas
+    # Detalles visuales
     plt.xlabel("Épocas (Iteraciones)", fontsize=13, fontweight='bold')
     plt.ylabel("Energía $E$", fontsize=13, fontweight='bold')
     plt.title(title, fontsize=15, pad=15)
@@ -60,20 +76,14 @@ def plot_energia_convergencia(log_path, exact_energy=None, save_path=None, title
     # 4. Guardar y mostrar
     if save_path:
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
-        print(f"[√] Gráfica de alta resolución guardada en: {save_path}")
+        print(f"[√] Gráfica guardada: {save_path}")
     
     plt.show()
 
 if __name__ == "__main__":
     # --- CONFIGURACIÓN PARA TU ÚLTIMO BENCHMARK 2D ---
-    
-    # [CORREGIDO] Añadimos TFG_ARViT a la ruta de búsqueda
     archivo_log = "/content/TFG_ARViT/resultado_benchmark_2D_ARViT.log" 
-    
-    # La energía exacta que te salió en la terminal
     energia_exacta_2D = -29.451812
-    
-    # Dónde guardar la foto (la guardamos también en la carpeta TFG_ARViT)
     ruta_guardado = "/content/TFG_ARViT/convergencia_energia_2D.png"
     
     plot_energia_convergencia(
