@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import time
 import numpy as np
 import jax
 import jax.numpy as jnp
@@ -105,10 +106,14 @@ def run_arvit_direct_2d():
     log_base = os.path.join(current_dir, "resultado_benchmark_2D_ARViT")
     logger = nk.logging.JsonLog(log_base, mode="write")
 
-    # --- 2. ENTRENAMIENTO ---
-    # [MODIFICADO]: Ahora entrena durante 1000 iteraciones
+    # --- 2. ENTRENAMIENTO Y CRONÓMETRO ---
     print("Iniciando entrenamiento VMC (1000 iteraciones)...")
+    start_time = time.time()  # [NUEVO] Empezamos a contar el tiempo
+    
     gs.run(n_iter=1000, out=logger, show_progress=True, callback=keeper.update)
+    
+    end_time = time.time()    # [NUEVO] Paramos el reloj
+    exec_time = end_time - start_time
     
     # --- 3. RESTAURACIÓN DE LA MEJOR ÉPOCA ---
     print(f"\n[+] Entrenamiento terminado. Restaurando la mejor iteración...")
@@ -129,9 +134,15 @@ def run_arvit_direct_2d():
     
     # Fidelidad
     psi_vmc = vstate.to_array()
-    psi_vmc = psi_vmc / jnp.linalg.norm(psi_vmc)
-    psi_exact = psi_exact / jnp.linalg.norm(psi_exact)
-    fidelity = abs(jnp.vdot(psi_vmc, psi_exact))**2
+    psi_vmc_norm = psi_vmc / jnp.linalg.norm(psi_vmc)
+    psi_exact_norm = psi_exact / jnp.linalg.norm(psi_exact)
+    fidelity = abs(jnp.vdot(psi_vmc_norm, psi_exact_norm))**2
+
+    # [NUEVO] Correlación y Desviación de Pearson (basado en densidades de probabilidad)
+    prob_vmc = np.abs(psi_vmc_norm)**2
+    prob_exact = np.abs(psi_exact_norm)**2
+    pearson_corr = np.corrcoef(prob_vmc, prob_exact)[0, 1]
+    pearson_dev = 1.0 - pearson_corr
 
     print("\n=========================================================")
     print("🎯 RESULTADOS FINALES 2D (CALCULADOS SOBRE LA MEJOR ÉPOCA)")
@@ -140,6 +151,8 @@ def run_arvit_direct_2d():
     print(f"Energía Exacta (ED)     : {exact_energy:.6f}")
     print(f"Error Relativo          : {rel_error:.4f} %")
     print(f"Fidelidad Cuántica      : {fidelity:.6f}")
+    print(f"Desviación Pearson      : {pearson_dev:.6f}")
+    print(f"Tiempo de Ejecución     : {exec_time:.2f} segundos")
     print("=========================================================\n")
     
     # --- 5. GENERACIÓN DE GRÁFICAS (HASTA ITERACIÓN 750) ---
@@ -148,7 +161,6 @@ def run_arvit_direct_2d():
     energies = extraer_energias_log(log_file_path)
     
     if energies:
-        # [MODIFICADO]: Recortar hasta la iteración 750 (o el máximo disponible)
         limit = min(len(energies), 750)
         energies_plot = energies[:limit]
         iters_plot = np.arange(limit)
@@ -165,7 +177,7 @@ def run_arvit_direct_2d():
         plt.title(f"Convergencia de la Energía - Malla 2D 4x4", fontsize=15, pad=15)
         plt.grid(True, linestyle=':', alpha=0.7)
         plt.legend(fontsize=12)
-        plt.xlim(0, 750)  # [MODIFICADO]: Eje X hasta 750
+        plt.xlim(0, 750)
         plt.tight_layout()
         path_conv = os.path.join(current_dir, "convergencia_energia_2D.png")
         plt.savefig(path_conv, dpi=300)
@@ -174,13 +186,13 @@ def run_arvit_direct_2d():
         # Gráfica 2: Error Absoluto Logarítmico
         plt.figure(figsize=(10, 6))
         plt.plot(iters_plot, abs_errors_plot, label=r"Error Absoluto $|E_{VMC} - E_{Exact}|$", color='#ff7f0e', linewidth=2)
-        plt.yscale('log') # Escala logarítmica
+        plt.yscale('log')
         plt.xlabel("Épocas (Iteraciones)", fontsize=13, fontweight='bold')
         plt.ylabel("Error Absoluto (Escala Log)", fontsize=13, fontweight='bold')
         plt.title(f"Evolución del Error Absoluto - Malla 2D 4x4", fontsize=15, pad=15)
         plt.grid(True, which="both", linestyle=':', alpha=0.5)
         plt.legend(fontsize=12)
-        plt.xlim(0, 750)  # [MODIFICADO]: Eje X hasta 750
+        plt.xlim(0, 750)
         plt.tight_layout()
         path_err = os.path.join(current_dir, "error_absoluto_2D.png")
         plt.savefig(path_err, dpi=300)
