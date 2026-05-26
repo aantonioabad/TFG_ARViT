@@ -19,19 +19,18 @@ from models.vitB import ARSpinViT_Causal
 from physics.utils import BestIterKeeper 
 from physics.utils import plot_markov_autocorrelation
 
-# ==============================================================================
-# DEFINICIÓN DEL HAMILTONIANO 2D (Malla con Condiciones de Contorno Periódicas)
-# ==============================================================================
+import numpy as np
+
 def get_Hamiltonian_2D(Lx: int, Ly: int, J: float, alpha: float, h: float = 1.0, hilbert=None):
     N = Lx * Ly
     if hilbert is None:
         hilbert = nk.hilbert.Spin(s=0.5, N=N)
     
-    # Grid 2D con PBC (Periodic Boundary Conditions)
     graph = nk.graph.Grid(extent=[Lx, Ly], pbc=True)
     distances = graph.distances()
     H = nk.operator.LocalOperator(hilbert)
     
+    # Usamos Numpy estricto para las matrices base
     sigmax = np.array([[0, 1], [1, 0]])
     sigmaz = np.array([[1, 0], [0, -1]])
     
@@ -45,7 +44,8 @@ def get_Hamiltonian_2D(Lx: int, Ly: int, J: float, alpha: float, h: float = 1.0,
             dist = distances[i][j]
             if dist > 0:
                 coupling = J / (dist ** alpha)
-                term = coupling * jnp.kron(sigmaz, sigmaz)
+                # [FIX]: Usamos np.kron en lugar de jnp.kron para mantenerlo en CPU
+                term = coupling * np.kron(sigmaz, sigmaz)
                 H += nk.operator.LocalOperator(hilbert, term, [i, j])
                 
     return H
