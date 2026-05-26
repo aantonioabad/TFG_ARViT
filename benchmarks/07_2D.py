@@ -10,11 +10,12 @@ import optax
 import matplotlib.pyplot as plt
 import scipy.sparse.linalg as sps
 
+# [MODIFICADO] Definimos la carpeta principal del TFG como base
+base_tfg_dir = "/content/TFG_ARViT"
+
 # Configuramos el path para que encuentre tus carpetas models y physics
-current_dir = os.path.dirname(os.path.abspath(__file__)) if '__file__' in globals() else os.getcwd()
-parent_dir = os.path.dirname(current_dir)
-if parent_dir not in sys.path:
-    sys.path.append(parent_dir)
+if base_tfg_dir not in sys.path:
+    sys.path.append(base_tfg_dir)
 
 from models.vitB import ARSpinViT_Causal
 from physics.utils import BestIterKeeper
@@ -77,22 +78,18 @@ def run_arvit_direct_2d():
     # --- 1. CONFIGURACIÓN DEL BENCHMARK ---
     Lx, Ly = 4, 4
     N = Lx * Ly
-    J_val = 1.0       # <- Asegúrate de que coincida con tus valores de test
-    alpha_val = 2.0   # <- Asegúrate de que coincida con tus valores de test
+    J_val = 1.0
+    alpha_val = 2.0
     
     print(f"\n=========================================================")
-    print(f"🚀 BENCHMARK 2D: ARViT + DIRECT SAMPLING (Malla {Lx}x{Ly})")
+    print(f"🚀 BENCHMARK 2D COMPLETE: ARViT + DIRECT (Malla {Lx}x{Ly})")
     print(f"=========================================================")
     
     hi = nk.hilbert.Spin(s=0.5, N=N)
     H = get_Hamiltonian_2D(Lx=Lx, Ly=Ly, J=J_val, alpha=alpha_val, hilbert=hi)
 
     model = ARSpinViT_Causal(
-        hilbert=hi,
-        embedding_d=8,
-        n_heads=2,
-        n_blocks=2,
-        n_ffn_layers=1
+        hilbert=hi, embedding_d=8, n_heads=2, n_blocks=2, n_ffn_layers=1
     )
 
     sampler = nk.sampler.ARDirectSampler(hi)
@@ -102,50 +99,44 @@ def run_arvit_direct_2d():
     gs = nk.driver.VMC_SR(H, optimizer, variational_state=vstate, diag_shift=0.1)
     keeper = BestIterKeeper(Hamiltonian=H, N=N, baseline=1e-6)
 
-    # Configurar el logger
-    log_base = os.path.join(current_dir, "resultado_benchmark_2D_ARViT")
+    # [MODIFICADO] Configurar el logger para guardar directamente en TFG_ARViT
+    log_base = os.path.join(base_tfg_dir, "resultado_benchmark_2D_ARViT")
     logger = nk.logging.JsonLog(log_base, mode="write")
 
     # --- 2. ENTRENAMIENTO Y CRONÓMETRO ---
     print("Iniciando entrenamiento VMC (1000 iteraciones)...")
-    start_time = time.time()  # [NUEVO] Empezamos a contar el tiempo
-    
+    start_time = time.time()
     gs.run(n_iter=1000, out=logger, show_progress=True, callback=keeper.update)
+    exec_time = time.time() - start_time
     
-    end_time = time.time()    # [NUEVO] Paramos el reloj
-    exec_time = end_time - start_time
-    
-    # --- 3. RESTAURACIÓN DE LA MEJOR ÉPOCA ---
-    print(f"\n[+] Entrenamiento terminado. Restaurando la mejor iteración...")
+    # --- 3. RESTAURACIÓN DE LA MEJOR ÉPOCA Y DIAGONALIZACIÓN ---
     vstate.parameters = keeper.best_state.parameters
-
-    # --- 4. CÁLCULO DE MÉTRICAS FINALES (Solo para la mejor iteración) ---
-    print("[+] Diagonalizando matriz exacta (ED) para N=16. Por favor, espera...")
+    print("[+] Diagonalizando matriz exacta (ED)...")
     sp_h = H.to_sparse()
     eigvals, eigvecs = sps.eigsh(sp_h, k=1, which="SA")
     exact_energy = eigvals[0]
     psi_exact = eigvecs[:, 0]
 
-    # Recalcular energía de forma limpia
+    # --- 4. CÁLCULO DE MÉTRICAS FINALES CON LA MEJOR ÉPOCA ---
     vmc_energy_best = vstate.expect(H).mean.real
     
-    # Error relativo
+    # [Métrica 1] Error relativo %
     rel_error = abs((vmc_energy_best - exact_energy) / exact_energy) * 100
     
-    # Fidelidad
+    # [Métrica 2] Fidelidad
     psi_vmc = vstate.to_array()
     psi_vmc_norm = psi_vmc / jnp.linalg.norm(psi_vmc)
     psi_exact_norm = psi_exact / jnp.linalg.norm(psi_exact)
     fidelity = abs(jnp.vdot(psi_vmc_norm, psi_exact_norm))**2
 
-    # [NUEVO] Correlación y Desviación de Pearson (basado en densidades de probabilidad)
+    # Pearson y Desviación
     prob_vmc = np.abs(psi_vmc_norm)**2
     prob_exact = np.abs(psi_exact_norm)**2
     pearson_corr = np.corrcoef(prob_vmc, prob_exact)[0, 1]
     pearson_dev = 1.0 - pearson_corr
 
     print("\n=========================================================")
-    print("🎯 RESULTADOS FINALES 2D (CALCULADOS SOBRE LA MEJOR ÉPOCA)")
+    print("🎯 RESULTADOS FINALES 2D (MEJOR ÉPOCA RESTAURADA)")
     print("=========================================================")
     print(f"Energía Calculada (VMC) : {vmc_energy_best:.6f}")
     print(f"Energía Exacta (ED)     : {exact_energy:.6f}")
@@ -155,51 +146,64 @@ def run_arvit_direct_2d():
     print(f"Tiempo de Ejecución     : {exec_time:.2f} segundos")
     print("=========================================================\n")
     
-    # --- 5. GENERACIÓN DE GRÁFICAS (HASTA ITERACIÓN 750) ---
+    # --- 5. GENERACIÓN DE GRÁFICAS PROFESIONALES ---
     print("[*] Generando gráficas profesionales de entrenamiento...")
-    log_file_path = log_base + ".log"
-    energies = extraer_energias_log(log_file_path)
+    energies = extraer_energias_log(log_base + ".log")
     
     if energies:
-        limit = min(len(energies), 750)
-        energies_plot = energies[:limit]
-        iters_plot = np.arange(limit)
-        
-        # Calcular el error absoluto época a época
-        abs_errors_plot = np.abs(np.array(energies_plot) - exact_energy)
+        all_iters = np.arange(len(energies))
+        abs_errors_all = np.abs(np.array(energies) - exact_energy)
 
-        # Gráfica 1: Convergencia de Energía
+        # [MODIFICADO] Gráfica 1: Convergencia Energía hasta 450
         plt.figure(figsize=(10, 6))
-        plt.plot(iters_plot, energies_plot, label="Energía VMC", color='#1f77b4', linewidth=2)
+        
+        # [MODIFICADO] Construimos la leyenda compleja con las métricas finales
+        leyenda_vmc = (f"Energía VMC\n"
+                       f"Métricas Finales (Best Iter):\n"
+                       f"• Error Rel: {rel_error:.4f}%\n"
+                       f"• Fidelidad: {fidelity:.4f}")
+        
+        plt.plot(all_iters, energies, label=leyenda_vmc, color='#1f77b4', linewidth=2)
         plt.axhline(y=exact_energy, color='#d62728', linestyle='--', linewidth=2, label=f"Energía Exacta ({exact_energy:.4f})")
+        
         plt.xlabel("Épocas (Iteraciones)", fontsize=13, fontweight='bold')
         plt.ylabel("Energía $E$", fontsize=13, fontweight='bold')
         plt.title(f"Convergencia de la Energía - Malla 2D 4x4", fontsize=15, pad=15)
         plt.grid(True, linestyle=':', alpha=0.7)
-        plt.legend(fontsize=12)
-        plt.xlim(0, 750)
+        
+        # [MODIFICADO] Leyenda un poco más grande para que quepa el texto
+        plt.legend(fontsize=10, loc='upper right') 
+        
+        # [MODIFICADO] Limitamos eje X a 450
+        plt.xlim(0, 450) 
         plt.tight_layout()
-        path_conv = os.path.join(current_dir, "convergencia_energia_2D.png")
+        
+        # [MODIFICADO] Guardar directamente en TFG_ARViT
+        path_conv = os.path.join(base_tfg_dir, "convergencia_energia_2D.png")
         plt.savefig(path_conv, dpi=300)
         plt.close()
 
-        # Gráfica 2: Error Absoluto Logarítmico
+        # [MODIFICADO] Gráfica 2: Error Absoluto hasta 1000
         plt.figure(figsize=(10, 6))
-        plt.plot(iters_plot, abs_errors_plot, label=r"Error Absoluto $|E_{VMC} - E_{Exact}|$", color='#ff7f0e', linewidth=2)
+        plt.plot(all_iters, abs_errors_all, label=r"Error Absoluto $|E_{VMC} - E_{Exact}|$", color='#ff7f0e', linewidth=2)
         plt.yscale('log')
         plt.xlabel("Épocas (Iteraciones)", fontsize=13, fontweight='bold')
         plt.ylabel("Error Absoluto (Escala Log)", fontsize=13, fontweight='bold')
         plt.title(f"Evolución del Error Absoluto - Malla 2D 4x4", fontsize=15, pad=15)
         plt.grid(True, which="both", linestyle=':', alpha=0.5)
         plt.legend(fontsize=12)
-        plt.xlim(0, 750)
+        
+        # [MODIFICADO] Limitamos eje X a 1000
+        plt.xlim(0, 1000) 
         plt.tight_layout()
-        path_err = os.path.join(current_dir, "error_absoluto_2D.png")
+        
+        # [MODIFICADO] Guardar directamente en TFG_ARViT
+        path_err = os.path.join(base_tfg_dir, "error_absoluto_2D.png")
         plt.savefig(path_err, dpi=300)
         plt.close()
 
-        print(f"[√] Gráfica guardada: {path_conv}")
-        print(f"[√] Gráfica guardada: {path_err}")
+        print(f"[√] Gráfica guardada en TFG_ARViT: {path_conv}")
+        print(f"[√] Gráfica guardada en TFG_ARViT: {path_err}")
         
         # Copia automática a Google Drive
         drive_plots = "/content/drive/MyDrive/TFG_ARViT/plots/"
@@ -207,9 +211,9 @@ def run_arvit_direct_2d():
             os.system(f"mkdir -p {drive_plots}")
             os.system(f"cp {path_conv} {drive_plots}")
             os.system(f"cp {path_err} {drive_plots}")
-            print("[√] Gráficas respaldadas en tu Google Drive.")
+            print("[√] Copia de seguridad de las gráficas creada en Drive.")
     else:
-        print("[X] Hubo un problema al leer el archivo log. No se generaron las gráficas.")
+        print("[X] Problema leyendo el log. No se generaron gráficas.")
 
 if __name__ == "__main__":
     run_arvit_direct_2d()
