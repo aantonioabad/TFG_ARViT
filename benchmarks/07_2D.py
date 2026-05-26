@@ -27,7 +27,7 @@ def get_Hamiltonian_2D(Lx: int, Ly: int, J: float, alpha: float, h: float = 1.0,
         hilbert = nk.hilbert.Spin(s=0.5, N=N)
     
     # Grid 2D con PBC (Periodic Boundary Conditions)
-    graph = nk.graph.Grid(length=[Lx, Ly], pbc=True)
+    graph = nk.graph.Grid(extent=[Lx, Ly], pbc=True)
     distances = graph.distances()
     H = nk.operator.LocalOperator(hilbert)
     
