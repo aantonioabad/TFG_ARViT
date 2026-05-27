@@ -1,3 +1,17 @@
+import os
+import sys
+
+# Obtenemos la ruta de la carpeta raíz (/content/TFG_ARViT)
+# Como estamos en /content/TFG_ARViT/plots, el padre es /content/TFG_ARViT
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+
+# Añadimos la raíz al path si no está ya
+if parent_dir not in sys.path:
+    sys.path.append(parent_dir)
+
+# AHORA ya puedes importar physics
+from physics.hamiltonian import get_Hamiltonian
 import jax
 import jax.numpy as jnp
 import netket as nk
@@ -84,8 +98,3 @@ plt.grid(True, alpha=0.3)
 plt.legend()
 plt.savefig("autocorr_manual.png")
 print("[✔] Gráfica 'autocorr_manual.png' guardada.")
-
-
-
-
-
