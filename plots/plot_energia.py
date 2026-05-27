@@ -132,4 +132,4 @@ if __name__ == "__main__":
             png_name = os.path.join(directorio_base, f"training_{nombre_base}.png")
             plot_benchmark_training(ruta_completa, title, png_name, exact_energy=E_EXACTA)
         else:
-            print(f"  [AVISO] Archivo no encontrado: {log_file}. Saltando...")
+            print(f"  [AVISO] Archivo no encontrado: {log_file}. Saltando....")
