@@ -211,7 +211,7 @@ def run_metropolis_sampling_6_points(N=10):
         print("-" * 60)
 
     # =====================================================================
-    # TABLA RESUMEN FINAL POR CONSOLA
+    # TABLA RESUMEN FINAL POR CONSOLA--------------
     # =====================================================================
     print(f"\n{'='*95}")
     print("📊 RESUMEN FINAL DEL BENCHMARK (METROPOLIS MCMC)")
