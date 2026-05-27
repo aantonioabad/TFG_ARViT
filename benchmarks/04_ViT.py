@@ -59,7 +59,7 @@ def run_vit_metropolis():
     print("Iniciando benchmark cronometrado...")
     start_time = time.time()
     
-    log = nk.logging.JsonLog("resultado_benchmark_04_ViT", save_params=False)
+    log = nk.logging.JsonLog("resultado_benchmark_04_ViT.2", save_params=False)
     gs.run(n_iter=1000, out=log, show_progress=True, callback=keeper.update)
     
     jax.block_until_ready(vstate.variables)
