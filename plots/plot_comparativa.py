@@ -62,9 +62,9 @@ def generar_todas_las_comparativas_top():
             "x_max": 400  # 900 épocas para ver la evolución de los tres modelos juntos
         },
         {
-            "pareja": ["ViT", "ARNN (Metropolis)", "Jastrow"],
-            "titulo": "Comparativa de Convergencia: ViT vs ARNN vs Jastrow",
-            "archivo": "comparativa_04_vs_05_vs_02.png",
+            "pareja": ["ViT", "ARNN (Metropolis)", "RBM"],
+            "titulo": "Comparativa de Convergencia: ViT vs ARNN vs RBM",
+            "archivo": "comparativa_04_vs_05_vs_03.png",
             "x_max": 400  # 900 épocas para ver la evolución de los tres modelos juntos
         }
         
