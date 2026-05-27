@@ -1,26 +1,47 @@
-import json
 import os
+import json
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 
+def extraer_energias(log_path):
+    """Extrae las energías iteración por iteración esquivando errores de formato."""
+    if not os.path.exists(log_path):
+        return []
+    with open(log_path, 'r') as f:
+        text = f.read().strip()
+        
+    decoder = json.JSONDecoder()
+    data_list = []
+    idx = 0
+    while idx < len(text):
+        text_substr = text[idx:].lstrip()
+        if not text_substr: break
+        try:
+            obj, next_idx = decoder.raw_decode(text_substr)
+            data_list.append(obj)
+            idx += next_idx
+        except json.JSONDecodeError:
+            break
+            
+    if not data_list: return []
+    data = data_list[-1]
+    energy_dict = data.get("Energy", {})
+    e_mean_list = energy_dict.get("Mean", energy_dict.get("mean", energy_dict.get("value", [])))
+    
+    energies = [e.get("real", e.get("Mean", e.get("mean", 0.0))) if isinstance(e, dict) else (e.real if isinstance(e, complex) else float(e)) for e in e_mean_list]
+    return energies
+
 def plot_benchmark_training(log_path, benchmark_name, output_filename, exact_energy):
     print(f"Generando gráfica técnica para: {benchmark_name}...")
     
-    if not os.path.exists(log_path):
-        print(f"  [ERROR] No se encuentra el archivo {log_path}.")
+    energy_mean = extraer_energias(log_path)
+    
+    if not energy_mean:
+        print(f"  [ERROR] No se pudo leer {log_path} o el archivo está vacío.")
         return
 
-    with open(log_path, 'r') as f:
-        data = json.load(f)
-        
-    iters = data['Energy']['iters']
-    energy_mean = []
-    for e in data['Energy']['Mean']:
-        if isinstance(e, dict):
-            energy_mean.append(e.get('real', 0.0))
-        else:
-            energy_mean.append(float(np.real(e)))
+    iters = range(len(energy_mean))
 
     # ESTÉTICA DE ARTÍCULO CIENTÍFICO (LaTeX-like)
     with plt.rc_context({
@@ -50,8 +71,8 @@ def plot_benchmark_training(log_path, benchmark_name, output_filename, exact_ene
         ax.set_title(benchmark_name.upper(), pad=12)
         
         # Ejes
-        ax.set_xlabel("Épocas")
-        ax.set_ylabel(r"Parámetro de control, $H$")
+        ax.set_xlabel("Épocas (Iteraciones)")
+        ax.set_ylabel(r"Energía $\langle H \rangle$") # Cambiado de Parámetro de control H a Energía <H>
         
         # Cuadrícula continua gris suave
         ax.grid(True, linestyle='-', color='#E5E8E8', linewidth=1.0)
@@ -68,26 +89,28 @@ def plot_benchmark_training(log_path, benchmark_name, output_filename, exact_ene
         print(f"  [ÉXITO] Gráfica guardada como '{output_filename}'\n")
 
 if __name__ == "__main__":
-    print("\n--- GENERANDO GRÁFICAS DE ENTRENAMIENTO (DATOS CRUDOS) ---\n")
+    print("\n--- GENERANDO GRÁFICAS INDIVIDUALES DE ENTRENAMIENTO ---\n")
     
-    directorio_logs = "/content/drive/MyDrive/TFG_ARViT/graficas y resultados modelos/"
+    # Directorio base (Local en Colab)
+    directorio_base = "/content/TFG_ARViT/"
     
-    # Energía exacta proporcionada
-    E_EXACTA = -12.32525024471575
+    # Energía exacta de tu modelo 1D N=10 J=1 alpha=2 (Asegúrate de que este es el valor que quieres)
+    E_EXACTA = -12.32525024471575 
     
+    # Lista de los logs que tienes en la captura
     logs_a_procesar = {
         "resultado_benchmark_02_Jastrow.log": "02 - Jastrow (Mean Field) + Metropolis",
-        "resultado_benchmark_03_LSTM.log": "03 - LSTM + Metropolis",
-        "resultado_benchmark_04_ViT.log": "04 - ViT Estándar + Metropolis",
+        "resultado_benchmark_03_RBM.log": "03 - RBM + Metropolis",  # Corregido de LSTM a RBM
         "resultado_benchmark_05_AR.log": "05 - ARNNDense + Metropolis",
         "resultado_benchmark_06_ARNN.log": "06 - ARNNDense + Direct Sampling",
-        "resultado_benchmark_06_ARViT.log": "06 - ARViT + Direct Sampling",
+        "resultado_benchmark_06_ARViT.log": "06 - ARViT + Direct Sampling"
     }
 
     for log_file, title in logs_a_procesar.items():
-        ruta_completa = directorio_logs + log_file
+        ruta_completa = os.path.join(directorio_base, log_file)
         nombre_base = log_file.replace(".log", "")
-        # Nuevo nombre para diferenciarlas
-        png_name = directorio_logs + f"training_{nombre_base}_Final.png" 
+        
+        # Guardar en la misma carpeta base
+        png_name = os.path.join(directorio_base, f"training_{nombre_base}.png")
         
         plot_benchmark_training(ruta_completa, title, png_name, exact_energy=E_EXACTA)
