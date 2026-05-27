@@ -2,27 +2,70 @@ import os
 import sys
 import time
 import json
+import numpy as np
 import jax
 import jax.numpy as jnp
 import netket as nk
 import optax
 import scipy.sparse.linalg
+import matplotlib.pyplot as plt  # <-- AÑADIDO PARA LAS GRÁFICAS
 
 # Ajuste de rutas para tus módulos
 current_dir = os.path.dirname(os.path.abspath(__file__)) if '__file__' in globals() else os.getcwd()
 parent_dir = os.path.dirname(current_dir)
-sys.path.append(parent_dir)
+if parent_dir not in sys.path:
+    sys.path.append(parent_dir)
 
 from physics.hamiltonian import get_Hamiltonian
 from models.vitB import ARSpinViT_Causal
 from physics.utils import BestIterKeeper
 
+# ==============================================================================
+# LECTOR ROBUSTO DE LOGS (ENERGÍA Y TAU) - PROTEGIDO CONTRA NULL
+# ==============================================================================
+def extraer_datos_log(log_path):
+    if not os.path.exists(log_path):
+        return [], []
+    with open(log_path, 'r') as f:
+        text = f.read().strip()
+        
+    decoder = json.JSONDecoder()
+    data_list = []
+    idx = 0
+    while idx < len(text):
+        text_substr = text[idx:].lstrip()
+        if not text_substr: break
+        try:
+            obj, next_idx = decoder.raw_decode(text_substr)
+            data_list.append(obj)
+            idx += next_idx
+        except json.JSONDecodeError:
+            break
+            
+    if not data_list: return [], []
+    data = data_list[-1]
+    
+    energy_dict = data.get("Energy", {})
+    
+    # Extraer energía
+    e_mean_list = energy_dict.get("Mean", energy_dict.get("mean", energy_dict.get("value", [])))
+    energies = [e.get("real", e.get("Mean", e.get("mean", 0.0))) if isinstance(e, dict) else (e.real if isinstance(e, complex) else float(e)) for e in e_mean_list]
+    
+    # Extraer Autocorrelación (TauCorr) evitando crasheos con None/null
+    tau_list = energy_dict.get("TauCorr", [])
+    taus = [float(t) if t is not None else 0.0 for t in tau_list]
+    
+    return energies, taus
+
+# ==============================================================================
+# SCRIPT PRINCIPAL
+# ==============================================================================
 def run_metropolis_sampling_6_points(N=10):
-    # Ruta principal en tu Drive (sin subcarpetas)
+    # Ruta principal en tu Drive
     drive_dir = "/content/drive/MyDrive/TFG_ARViT/Fase_ J_alpha/"
     os.makedirs(drive_dir, exist_ok=True)
 
-    # Solo los 6 puntos exactos para la comparativa
+    # Solo los 6 puntos exactos para la comparativa (alpha, J)
     experimentos = [
         (6.0, 7.0),
         (6.0, -4.0),
@@ -32,16 +75,13 @@ def run_metropolis_sampling_6_points(N=10):
         (1.0, 7.0)
     ]
 
-    exact_energies_summary = {}
-    
-    # 🌟 NUEVO: Lista para guardar los resultados finales
     summary_table = []
 
-    print(f"\n{'='*80}")
-    print(f"🚀 INICIANDO BENCHMARK: METROPOLIS MCMC + FIDELIDAD (6 PUNTOS)")
+    print(f"\n{'='*95}")
+    print(f"🚀 INICIANDO BENCHMARK: METROPOLIS MCMC + FIDELIDAD + TAU (6 PUNTOS)")
     print(f"💾 Destino: {drive_dir}")
     print(f"🎲 Sampler: MetropolisLocal")
-    print(f"{'='*80}\n")
+    print(f"{'='*95}\n")
 
     for alpha, J in experimentos:
         print(f"\n>>> TRABAJANDO EN: J={J} | alpha={alpha} <<<")
@@ -53,9 +93,6 @@ def run_metropolis_sampling_6_points(N=10):
         evals, evecs = scipy.sparse.linalg.eigsh(H_sparse, k=1, which="SA")
         E_exact = float(evals[0])
         
-        if alpha not in exact_energies_summary:
-            exact_energies_summary[alpha] = {}
-        exact_energies_summary[alpha][J] = E_exact
         print(f"  [+] Energía Exacta: {E_exact:.6f}")
 
         # 2. Configuración del Modelo
@@ -69,13 +106,13 @@ def run_metropolis_sampling_6_points(N=10):
         
         # Muestreo Metropolis Local
         sampler = nk.sampler.MetropolisLocal(
-        hi,
-        n_chains=1, # Número de exploradores en paralelo
-        sweep_size=1   # Muestras que se dejan pasar entre extracciones
+            hi,
+            n_chains=1,    # Número de exploradores en paralelo
+            sweep_size=1   # Muestras que se dejan pasar entre extracciones
         )
         
-        # Estado variacional
-        vstate = nk.vqs.MCState(sampler, model, n_samples=2048, seed=42)
+        # Estado variacional (Añadido n_discard_per_chain para el burn-in de Metropolis)
+        vstate = nk.vqs.MCState(sampler, model, n_samples=2048, n_discard_per_chain=100, seed=42)
         
         optimizer = optax.adam(learning_rate=0.001)
         gs = nk.driver.VMC_SR(H, optimizer, variational_state=vstate, diag_shift=0.1)
@@ -91,13 +128,28 @@ def run_metropolis_sampling_6_points(N=10):
         gs.run(n_iter=500, out=log, show_progress=True, callback=keeper.update)
         jax.block_until_ready(vstate.variables)
         
-        # 5. Cargar mejores parámetros
+        # Forzamos el cierre del logger para que vuelque todo al disco
+        del log 
+        
+        # 5. EXTRAER TAU DE LA MEJOR ÉPOCA DESDE EL LOG
+        log_path = base_log_name + ".log"
+        energies_log, taus_log = extraer_datos_log(log_path)
+        
+        best_tau = 0.0
+        best_iter = 0
+        if energies_log and taus_log:
+            best_iter = np.argmin(energies_log)
+            best_tau = taus_log[best_iter]
+            print(f"  [+] Mejor época en log detectada: Iteración {best_iter} | Tau = {best_tau:.4f}")
+        else:
+            print("  [X] Advertencia: No se pudo extraer TauCorr del log.")
+
+        # 6. Cargar mejores parámetros para calcular Energía Final y Fidelidad
         vstate.parameters = keeper.best_state.parameters
         
-        # 🌟 NUEVO: Extraer la energía calculada con los mejores parámetros
         E_calc = float(vstate.expect(H).mean.real)
         
-        # 6. CALCULAR FIDELIDAD CUÁNTICA EXACTA AL VUELO
+        # 7. CALCULAR FIDELIDAD CUÁNTICA EXACTA AL VUELO
         psi_exact = evecs[:, 0]
         psi_arvit = vstate.to_array()
         psi_arvit = psi_arvit / jnp.linalg.norm(psi_arvit)
@@ -105,7 +157,7 @@ def run_metropolis_sampling_6_points(N=10):
         fidelidad = float(jnp.abs(jnp.vdot(psi_arvit, psi_exact))**2)
         print(f"  [+] Fidelidad Cuántica Calculada: {fidelidad:.6f}")
         
-        # 🌟 NUEVO: Calcular Error Relativo y guardar en el resumen
+        # Calcular Error Relativo y guardar en el resumen
         err_rel = abs((E_calc - E_exact) / E_exact)
         summary_table.append({
             'J': J,
@@ -113,38 +165,84 @@ def run_metropolis_sampling_6_points(N=10):
             'E_exact': E_exact,
             'E_calc': E_calc,
             'Fidelidad': fidelidad,
-            'Error_Rel': err_rel
+            'Error_Rel': err_rel,
+            'Tau': best_tau
         })
         
-        
-        del log 
-        
-        
-        log_path = base_log_name + ".log"
+        # Intentar inyectar en el JSON
         if os.path.exists(log_path):
-            with open(log_path, 'r') as f:
-                log_data = json.load(f)
-            
-            log_data['Best_Fidelity'] = fidelidad
-            
-            with open(log_path, 'w') as f:
-                json.dump(log_data, f, indent=4)
-            print(f"  [💾] Fidelidad inyectada con éxito en el log: {os.path.basename(log_path)}")
+            try:
+                with open(log_path, 'r') as f:
+                    log_data = json.load(f)
+                log_data['Best_Fidelity'] = fidelidad
+                log_data['Best_Tau'] = best_tau
+                with open(log_path, 'w') as f:
+                    json.dump(log_data, f, indent=4)
+                print(f"  [💾] Fidelidad y Tau inyectados en el log.")
+            except Exception:
+                pass 
         
         print(f"  [√] Finalizado en {time.time() - start_time:.1f}s")
         print("-" * 60)
 
     # =====================================================================
-    # 🌟 NUEVO: TABLA RESUMEN FINAL POR CONSOLA
+    # TABLA RESUMEN FINAL POR CONSOLA
     # =====================================================================
-    print(f"\n{'='*85}")
+    print(f"\n{'='*95}")
     print("📊 RESUMEN FINAL DEL BENCHMARK (METROPOLIS MCMC)")
-    print(f"{'='*85}")
-    print(f"{'J':>6} | {'alpha':>6} | {'E Exacta':>12} | {'E Calculada':>12} | {'Error Rel.':>12} | {'Fidelidad':>10}")
-    print("-" * 85)
+    print(f"{'='*95}")
+    print(f"{'J':>6} | {'alpha':>6} | {'E Exacta':>12} | {'E Calculada':>12} | {'Error Rel.':>12} | {'Fidelidad':>10} | {'Tau':>8}")
+    print("-" * 95)
     for res in summary_table:
-        print(f"{res['J']:6.2f} | {res['alpha']:6.2f} | {res['E_exact']:12.6f} | {res['E_calc']:12.6f} | {res['Error_Rel']:12.2e} | {res['Fidelidad']:10.6f}")
-    print(f"{'='*85}\n")
+        print(f"{res['J']:6.2f} | {res['alpha']:6.2f} | {res['E_exact']:12.6f} | {res['E_calc']:12.6f} | {res['Error_Rel']:12.2e} | {res['Fidelidad']:10.6f} | {res['Tau']:8.4f}")
+    print(f"{'='*95}\n")
+
+    # =====================================================================
+    # GRÁFICAS COMPARATIVAS (FIDELIDAD Y TAU)
+    # =====================================================================
+    print("\n[*] Generando gráficas comparativas...")
+    
+    etiquetas = [f"J={r['J']}\n$\\alpha$={r['alpha']}" for r in summary_table]
+    fidelidades = [r['Fidelidad'] for r in summary_table]
+    taus = [r['Tau'] for r in summary_table]
+
+    # --- Gráfica 1: Fidelidad ---
+    plt.figure(figsize=(12, 6))
+    bars_fid = plt.bar(etiquetas, fidelidades, color='#2ca02c', alpha=0.8, edgecolor='black')
+    
+    for bar in bars_fid:
+        yval = bar.get_height()
+        plt.text(bar.get_x() + bar.get_width()/2, yval + 0.01, 
+                 f'{yval:.4f}', ha='center', va='bottom', fontweight='bold')
+
+    plt.ylabel("Fidelidad Cuántica (Mejor Época)", fontsize=13, fontweight='bold')
+    plt.title("Comparativa de Fidelidad Cuántica - Metropolis (N=10)", fontsize=15, pad=15)
+    plt.ylim(0, 1.1)  # La fidelidad siempre está entre 0 y 1
+    plt.grid(axis='y', linestyle=':', alpha=0.7)
+    plt.tight_layout()
+    path_plot_fid = os.path.join(drive_dir, "comparativa_fidelidad_Metropolis.png")
+    plt.savefig(path_plot_fid, dpi=300)
+    plt.close()
+    print(f"  [√] Gráfica de Fidelidad guardada en: {path_plot_fid}")
+
+    # --- Gráfica 2: Autocorrelación (Tau) ---
+    plt.figure(figsize=(12, 6))
+    bars_tau = plt.bar(etiquetas, taus, color='#d62728', alpha=0.8, edgecolor='black')
+    
+    for bar in bars_tau:
+        yval = bar.get_height()
+        plt.text(bar.get_x() + bar.get_width()/2, yval + (max(taus)*0.01 if max(taus)>0 else 0.01), 
+                 f'{yval:.2f}', ha='center', va='bottom', fontweight='bold')
+
+    plt.ylabel(r"Tiempo de Autocorrelación $\tau$ (Mejor Época)", fontsize=13, fontweight='bold')
+    plt.title("Impacto del Diagrama de Fases en Autocorrelación - Metropolis", fontsize=15, pad=15)
+    plt.grid(axis='y', linestyle=':', alpha=0.7)
+    plt.tight_layout()
+    path_plot_tau = os.path.join(drive_dir, "comparativa_tau_Metropolis.png")
+    plt.savefig(path_plot_tau, dpi=300)
+    plt.close()
+    print(f"  [√] Gráfica de Autocorrelación guardada en: {path_plot_tau}")
+    print("\n[✔] ¡Proceso completo!")
 
 if __name__ == "__main__":
     run_metropolis_sampling_6_points(N=10)
