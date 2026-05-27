@@ -8,7 +8,7 @@ import jax.numpy as jnp
 import netket as nk
 import optax
 import scipy.sparse.linalg
-import matplotlib.pyplot as plt  # <-- AÑADIDO PARA LAS GRÁFICAS
+import matplotlib.pyplot as plt
 
 # Ajuste de rutas para tus módulos
 current_dir = os.path.dirname(os.path.abspath(__file__)) if '__file__' in globals() else os.getcwd()
@@ -61,9 +61,9 @@ def extraer_datos_log(log_path):
 # SCRIPT PRINCIPAL
 # ==============================================================================
 def run_metropolis_sampling_6_points(N=10):
-    # Ruta principal en tu Drive
-    drive_dir = "/content/drive/MyDrive/TFG_ARViT/Fase_ J_alpha/"
-    os.makedirs(drive_dir, exist_ok=True)
+    # Ruta en el repositorio clonado de Colab
+    base_dir = "/content/TFG_ARViT"
+    os.makedirs(base_dir, exist_ok=True)
 
     # Solo los 6 puntos exactos para la comparativa (alpha, J)
     experimentos = [
@@ -79,7 +79,7 @@ def run_metropolis_sampling_6_points(N=10):
 
     print(f"\n{'='*95}")
     print(f"🚀 INICIANDO BENCHMARK: METROPOLIS MCMC + FIDELIDAD + TAU (6 PUNTOS)")
-    print(f"💾 Destino: {drive_dir}")
+    print(f"💾 Destino: {base_dir}")
     print(f"🎲 Sampler: MetropolisLocal")
     print(f"{'='*95}\n")
 
@@ -119,7 +119,7 @@ def run_metropolis_sampling_6_points(N=10):
         keeper = BestIterKeeper(Hamiltonian=H, N=N, baseline=1e-6)
 
         # 3. Nombres de archivos
-        base_log_name = os.path.join(drive_dir, f"resultado_metropolis_alpha{alpha}_J{J}")
+        base_log_name = os.path.join(base_dir, f"resultado_metropolis_alpha{alpha}_J{J}")
         log = nk.logging.JsonLog(base_log_name, save_params=False)
 
         # 4. Ejecución del Entrenamiento
@@ -138,9 +138,34 @@ def run_metropolis_sampling_6_points(N=10):
         best_tau = 0.0
         best_iter = 0
         if energies_log and taus_log:
-            best_iter = np.argmin(energies_log)
+            best_iter = int(np.argmin(energies_log))
             best_tau = taus_log[best_iter]
             print(f"  [+] Mejor época en log detectada: Iteración {best_iter} | Tau = {best_tau:.4f}")
+            
+            # --- GENERAR GRÁFICA INDIVIDUAL DE AUTOCORRELACIÓN ---
+            plt.figure(figsize=(10, 6))
+            iters = np.arange(len(taus_log))
+            plt.plot(iters, taus_log, label=rf"Autocorrelación ($\tau$)", color='#d62728', linewidth=2, alpha=0.8)
+            
+            tau_media = np.mean(taus_log)
+            plt.axhline(y=tau_media, color='black', linestyle='--', label=f"Media: {tau_media:.2f}")
+            
+            # Marcar la mejor iteración en la gráfica
+            plt.scatter(best_iter, best_tau, color='blue', s=100, zorder=5, 
+                        label=f'Mejor Época ({best_iter})\n$\\tau$ = {best_tau:.4f}')
+            
+            plt.xlabel("Épocas (Iteraciones)", fontsize=13, fontweight='bold')
+            plt.ylabel(r"Tiempo de Autocorrelación $\tau$", fontsize=13, fontweight='bold')
+            plt.title(f"Evolución de Autocorrelación (Metropolis) - J={J}, $\\alpha$={alpha}", fontsize=15, pad=15)
+            plt.grid(True, linestyle=':', alpha=0.7)
+            plt.legend(fontsize=12)
+            plt.tight_layout()
+            
+            path_plot_tau = os.path.join(base_dir, f"autocorr_metropolis_alpha{alpha}_J{J}.png")
+            plt.savefig(path_plot_tau, dpi=300)
+            plt.close()
+            print(f"  [√] Gráfica guardada en: {os.path.basename(path_plot_tau)}")
+
         else:
             print("  [X] Advertencia: No se pudo extraer TauCorr del log.")
 
@@ -196,53 +221,6 @@ def run_metropolis_sampling_6_points(N=10):
     for res in summary_table:
         print(f"{res['J']:6.2f} | {res['alpha']:6.2f} | {res['E_exact']:12.6f} | {res['E_calc']:12.6f} | {res['Error_Rel']:12.2e} | {res['Fidelidad']:10.6f} | {res['Tau']:8.4f}")
     print(f"{'='*95}\n")
-
-    # =====================================================================
-    # GRÁFICAS COMPARATIVAS (FIDELIDAD Y TAU)
-    # =====================================================================
-    print("\n[*] Generando gráficas comparativas...")
-    
-    etiquetas = [f"J={r['J']}\n$\\alpha$={r['alpha']}" for r in summary_table]
-    fidelidades = [r['Fidelidad'] for r in summary_table]
-    taus = [r['Tau'] for r in summary_table]
-
-    # --- Gráfica 1: Fidelidad ---
-    plt.figure(figsize=(12, 6))
-    bars_fid = plt.bar(etiquetas, fidelidades, color='#2ca02c', alpha=0.8, edgecolor='black')
-    
-    for bar in bars_fid:
-        yval = bar.get_height()
-        plt.text(bar.get_x() + bar.get_width()/2, yval + 0.01, 
-                 f'{yval:.4f}', ha='center', va='bottom', fontweight='bold')
-
-    plt.ylabel("Fidelidad Cuántica (Mejor Época)", fontsize=13, fontweight='bold')
-    plt.title("Comparativa de Fidelidad Cuántica - Metropolis (N=10)", fontsize=15, pad=15)
-    plt.ylim(0, 1.1)  # La fidelidad siempre está entre 0 y 1
-    plt.grid(axis='y', linestyle=':', alpha=0.7)
-    plt.tight_layout()
-    path_plot_fid = os.path.join(drive_dir, "comparativa_fidelidad_Metropolis.png")
-    plt.savefig(path_plot_fid, dpi=300)
-    plt.close()
-    print(f"  [√] Gráfica de Fidelidad guardada en: {path_plot_fid}")
-
-    # --- Gráfica 2: Autocorrelación (Tau) ---
-    plt.figure(figsize=(12, 6))
-    bars_tau = plt.bar(etiquetas, taus, color='#d62728', alpha=0.8, edgecolor='black')
-    
-    for bar in bars_tau:
-        yval = bar.get_height()
-        plt.text(bar.get_x() + bar.get_width()/2, yval + (max(taus)*0.01 if max(taus)>0 else 0.01), 
-                 f'{yval:.2f}', ha='center', va='bottom', fontweight='bold')
-
-    plt.ylabel(r"Tiempo de Autocorrelación $\tau$ (Mejor Época)", fontsize=13, fontweight='bold')
-    plt.title("Impacto del Diagrama de Fases en Autocorrelación - Metropolis", fontsize=15, pad=15)
-    plt.grid(axis='y', linestyle=':', alpha=0.7)
-    plt.tight_layout()
-    path_plot_tau = os.path.join(drive_dir, "comparativa_tau_Metropolis.png")
-    plt.savefig(path_plot_tau, dpi=300)
-    plt.close()
-    print(f"  [√] Gráfica de Autocorrelación guardada en: {path_plot_tau}")
-    print("\n[✔] ¡Proceso completo!")
 
 if __name__ == "__main__":
     run_metropolis_sampling_6_points(N=10)
