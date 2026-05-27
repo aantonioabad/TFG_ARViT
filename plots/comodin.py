@@ -6,8 +6,23 @@ import time
 import numpy as np
 import scipy.sparse.linalg as sps
 import matplotlib.pyplot as plt
+import os
+import sys
 
-# Configuración del sistema
+# Obtenemos la ruta de la carpeta raíz (/content/TFG_ARViT)
+# Como estamos en /content/TFG_ARViT/plots, el padre es /content/TFG_ARViT
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+
+
+
+if parent_dir not in sys.path:
+    sys.path.append(parent_dir)
+
+
+
+from physics.hamiltonian import get_Hamiltonian
+
 N = 10
 J = 7.0
 alpha = 6.0
