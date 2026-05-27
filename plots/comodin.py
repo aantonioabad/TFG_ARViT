@@ -57,19 +57,36 @@ gs.run(n_iter=n_iter, out=logger)
 print(f"[+] Entrenamiento completado en {time.time()-start:.2f}s.")
 
 # 4. Cálculo de Métricas Rigurosas
+# --- REEMPLAZA EL BLOQUE DE LAS MÉTRICAS POR ESTE ---
+
+# 4. Cálculo de Métricas Finales
 E_calc = vstate.expect(H).mean.real
 err_rel = abs((E_calc - E_exact) / E_exact) * 100
 
+# Fidelidad
 psi_vmc = vstate.to_array()
 psi_vmc /= jnp.linalg.norm(psi_vmc)
 fidelidad = float(jnp.abs(jnp.vdot(psi_vmc, psi_exact))**2)
 
-# Cálculo estadístico manual de Tau (más preciso que el atributo del sampler)
-# Extraemos muestras de la última iteración
-samples = vstate.samples 
-# statistics() de NetKet nos da el tau integrado (tau_int)
-stats = statistics(samples)
-tau_c = stats.tau_int[0] 
+# Cálculo manual de Tau (Evita el NotImplemetedError de NetKet)
+# raw_samples tiene forma (n_chains, n_samples_per_chain, N_spins)
+# Aplanamos para analizar la serie temporal de espines
+raw_samples = vstate.samples[0, :, :].reshape(-1) 
+
+def compute_tau_int(x):
+    """Calcula el tiempo de autocorrelación integrado de forma robusta."""
+    x = x - np.mean(x)
+    n = len(x)
+    # Función de autocorrelación normalizada
+    result = np.correlate(x, x, mode='full')[n-1:]
+    result /= result[0]
+    
+    # Integramos hasta que la correlación sea insignificante
+    # (Metodología estándar para determinar pasos independientes en MCMC)
+    tau_int = 0.5 + np.sum(result[1:])
+    return max(tau_int, 0.0)
+
+tau_c = compute_tau_int(raw_samples)
 
 print("\n" + "="*35)
 print("🎯 MÉTRICAS COMPLETAS PARA TFG")
@@ -82,19 +99,18 @@ print(f"Tau_c (int)     : {tau_c:.4f}")
 print("="*35)
 
 # 5. Gráfica de Autocorrelación
-# Calculamos la función de autocorrelación sobre las muestras crudas
-x = samples[:, 0, :].reshape(-1) # Aplanamos las muestras de la cadena
-x = x - np.mean(x)
+# Representamos la caída de la correlación para justificar el burn-in/muestreo
+x = raw_samples - np.mean(raw_samples)
 ac = np.correlate(x, x, mode='full')[len(x)-1:]
-ac /= ac[0] # Normalizar
+ac /= ac[0]
 
 plt.figure(figsize=(8, 4))
-plt.plot(ac[:100], color='blue', label='Autocorrelación')
+plt.plot(ac[:100], color='blue', label='Correlación $\langle s_i(t)s_i(0) \rangle$')
 plt.axhline(0, color='black', linestyle='--', linewidth=0.5)
-plt.title(f"Autocorrelación de Muestras (J={J}, $\\alpha$={alpha})")
+plt.title(f"Caída de la Autocorrelación (J={J}, $\\alpha$={alpha})")
 plt.xlabel("Lag (pasos de Metropolis)")
 plt.ylabel("Correlación")
 plt.grid(True, alpha=0.3)
 plt.legend()
-plt.savefig("autocorr_manual.png")
-print("[✔] Gráfica 'autocorr_manual.png' guardada.")
+plt.savefig("autocorr_plot.png")
+print("[✔] Gráfica 'autocorr_plot.png' guardada.")
