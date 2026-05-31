@@ -3,7 +3,6 @@ import jax
 import jax.numpy as jnp
 import netket as nk
 
-# --- 1. BLOQUE TRANSFORMER CAUSAL ---
 
 class CausalTransformerBlock(nn.Module):
     n_heads: int
@@ -34,7 +33,6 @@ class CausalTransformerBlock(nn.Module):
         x = nn.LayerNorm(param_dtype=jnp.float64)(x)
         return x
 
-# --- 2. EL MODELO ViT AUTOREGRESIVO
 
 class ARSpinViT_Causal(nk.models.AbstractARNN):
     embedding_d: int = 8
@@ -48,7 +46,7 @@ class ARSpinViT_Causal(nk.models.AbstractARNN):
         
         batch_size, N = inputs.shape
 
-        # 1. SHIFT CAUSAL: Añadimos 0 al inicio, quitamos el último
+        # 1. SHIFT CAUSAL
         zeros = jnp.zeros((batch_size, 1), dtype=inputs.dtype)
         x = jnp.concatenate([zeros, inputs[:, :-1]], axis=1)
         x = x.astype(jnp.float64)[..., None] 
@@ -64,7 +62,7 @@ class ARSpinViT_Causal(nk.models.AbstractARNN):
         )
         x = x + pos_emb
 
-        # 3. MÁSCARA CAUSAL ESTÁNDAR DE FLAX
+        # 3. MÁSCARA CAUSAL
         mask = nn.make_causal_mask(jnp.empty((batch_size, N)))
 
         # 4. PASO POR LOS BLOQUES TRANSFORMER
