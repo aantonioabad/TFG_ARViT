@@ -36,7 +36,7 @@ def run_arvit_direct():
     model = ARSpinViT_Causal(
         hilbert=hi,
         embedding_d=8,
-        n_heads=4,
+        n_heads=2,
         n_blocks=2,
         n_ffn_layers=1
     )
