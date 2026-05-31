@@ -16,8 +16,6 @@ os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 from physics.hamiltonian import get_Hamiltonian
 from physics.utils import BestIterKeeper
 from physics.utils import plot_markov_autocorrelation
-
-# Asegúrate de que la importación viene del archivo correcto donde tengas BatchedSpinViT
 from models.vit_standard import BatchedSpinViT 
 
 def run_vit_metropolis():

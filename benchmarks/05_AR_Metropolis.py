@@ -10,10 +10,8 @@ import optax
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 sys.path.append(parent_dir)
-
 os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 
-# --- IMPORTACIONES  ---
 from physics.hamiltonian import get_Hamiltonian
 from physics.utils import BestIterKeeper 
 from physics.utils import plot_markov_autocorrelation 
@@ -66,7 +64,7 @@ def run_arnn_metropolis():
     print(f"\nEntrenamiento terminado. Restaurando la mejor iteración (Energia: {keeper.best_energy:.6f})...")
     vstate.parameters = keeper.best_state.parameters
 
-    # --- CÁLCULO DE MÉTRICAS ---
+
     print("Calculando métricas finales (Fidelidad, Pearson y Correlación) con el mejor estado...")
     E_stat = vstate.expect(H)
     E_mean = E_stat.mean.real
@@ -82,7 +80,7 @@ def run_arnn_metropolis():
     psi_vmc = vstate.to_array(normalize=True)
     overlap = float(jnp.abs(jnp.vdot(psi_exact, psi_vmc))**2)
 
-    # --- RESULTADOS FINALES ---
+  
     print("\n>>> RESULTADOS FINALES:")
     print(f"Energia VMC       : {E_mean:.6f}")
     print(f"Energia Exacta    : {E_exact:.6f}")

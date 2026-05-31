@@ -17,19 +17,13 @@ from physics.hamiltonian import get_Hamiltonian
 def run_exact():
     print(">>> BENCHMARK 01: DIAGONALIZACIÓN EXACTA")
     
-    # 1. Definir el Sistema (Igual que en tu Transformer)
     N = 10
     J = 1.0
     alpha = 3.0
-    
-    # Espacio de Hilbert (Spin 1/2)
     hi = nk.hilbert.Spin(s=0.5, N=N)
-    
-    # Hamiltoniano (Tu versión de largo alcance)
     H = get_Hamiltonian(N, J, alpha, hi)
     
     # 2. Diagonalización Exacta (Lanczos)
-    # Convierte el operador H en una matriz dispersa y busca el autovalor más bajo.
     print(f"Calculando suelo exacto para N={N}...")
     start_time = time.time()
     

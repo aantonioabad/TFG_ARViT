@@ -26,7 +26,6 @@ def run_jastrow_metropolis():
     hi = nk.hilbert.Spin(s=0.5, N=N)
     H = get_Hamiltonian(N, J=1.0, alpha=3.0, hilbert=hi)
 
-    # Forzamos los parámetros a float para evitar el error de los números complejos
     model = nk.models.Jastrow(param_dtype=float)
 
     sampler = nk.sampler.MetropolisLocal(

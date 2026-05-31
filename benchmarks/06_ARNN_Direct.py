@@ -57,8 +57,7 @@ def run_ar_direct():
     
     print(f"\nEntrenamiento terminado. Restaurando la mejor iteración (Energia: {keeper.best_energy:.6f})...")
     vstate.parameters = keeper.best_state.parameters
-
-    # --- CÁLCULO DE MÉTRICAS ---
+    
     print("Calculando métricas finales...")
     E_stat = vstate.expect(H)
     E_mean = E_stat.mean.real
