@@ -76,9 +76,10 @@ def run_arvit_direct_2d():
     N = Lx * Ly
     J_val = 1.0
     alpha_val = 2.0
+    n_iteraciones = 1000
     
     print(f"\n=========================================================")
-    print(f"🚀 BENCHMARK 2D: ARViT + DIRECT (Malla {Lx}x{Ly})")
+    print(f"BENCHMARK 2D: ARViT + DIRECT (Malla {Lx}x{Ly} - {N} espines)")
     print(f"=========================================================")
     
     hi = nk.hilbert.Spin(s=0.5, N=N)
@@ -94,50 +95,54 @@ def run_arvit_direct_2d():
     optimizer = optax.adam(learning_rate=0.001)
     gs = nk.driver.VMC_SR(H, optimizer, variational_state=vstate, diag_shift=0.1)
     keeper = BestIterKeeper(Hamiltonian=H, N=N, baseline=1e-6)
-
     
     log_base = os.path.join(base_tfg_dir, "resultado_benchmark_2D_ARViT")
     logger = nk.logging.JsonLog(log_base, mode="write")
 
-    
-    print("Iniciando entrenamiento VMC (1000 iteraciones)...")
+    print(f"Iniciando entrenamiento VMC ({n_iteraciones} iteraciones)...")
     start_time = time.time()
-    gs.run(n_iter=1000, out=logger, show_progress=True, callback=keeper.update)
+    gs.run(n_iter=n_iteraciones, out=logger, show_progress=True, callback=keeper.update)
     exec_time = time.time() - start_time
     
     
     vstate.parameters = keeper.best_state.parameters
-    print("[+] Diagonalizando matriz exacta (ED)...")
-    sp_h = H.to_sparse()
-    eigvals, eigvecs = sps.eigsh(sp_h, k=1, which="SA")
-    exact_energy = eigvals[0]
-    psi_exact = eigvecs[:, 0]
-
-   
     vmc_energy_best = vstate.expect(H).mean.real
-    
-    rel_error = abs((vmc_energy_best - exact_energy) / exact_energy) * 100
-    
-   
-    psi_vmc = vstate.to_array()
-    psi_vmc_norm = psi_vmc / jnp.linalg.norm(psi_vmc)
-    psi_exact_norm = psi_exact / jnp.linalg.norm(psi_exact)
-    fidelity = abs(jnp.vdot(psi_vmc_norm, psi_exact_norm))**2
 
-   
-    prob_vmc = np.abs(psi_vmc_norm)**2
-    prob_exact = np.abs(psi_exact_norm)**2
-    pearson_corr = np.corrcoef(prob_vmc, prob_exact)[0, 1]
-    pearson_dev = 1.0 - pearson_corr
+    exact_energy = None
+    if N <= 20:
+        print("[+] Diagonalizando matriz exacta (ED)...")
+        sp_h = H.to_sparse()
+        eigvals, eigvecs = sps.eigsh(sp_h, k=1, which="SA")
+        exact_energy = eigvals[0]
+        psi_exact = np.array(eigvecs[:, 0])
 
+        rel_error = abs((vmc_energy_best - exact_energy) / exact_energy) * 100
+        
+        
+        psi_vmc = np.array(vstate.to_array())
+        psi_vmc_norm = psi_vmc / np.linalg.norm(psi_vmc)
+        psi_exact_norm = psi_exact / np.linalg.norm(psi_exact)
+        fidelity = abs(np.vdot(psi_vmc_norm, psi_exact_norm))**2
+
+        prob_vmc = np.abs(psi_vmc_norm)**2
+        prob_exact = np.abs(psi_exact_norm)**2
+        pearson_corr = np.corrcoef(prob_vmc, prob_exact)[0, 1]
+        pearson_dev = 1.0 - pearson_corr
+    else:
+        print(f"[!] Malla demasiado grande (N={N}). Se omite la Diagonalización Exacta (ED).")
+
+    # --- IMPRESIÓN DE RESULTADOS ---
     print("\n=========================================================")
     print(" RESULTADOS FINALES 2D (MEJOR ÉPOCA RESTAURADA)")
     print("=========================================================")
     print(f"Energía Calculada (VMC) : {vmc_energy_best:.6f}")
-    print(f"Energía Exacta (ED)     : {exact_energy:.6f}")
-    print(f"Error Relativo          : {rel_error:.4f} %")
-    print(f"Fidelidad Cuántica      : {fidelity:.6f}")
-    print(f"Desviación Pearson      : {pearson_dev:.6f}")
+    
+    if exact_energy is not None:
+        print(f"Energía Exacta (ED)     : {exact_energy:.6f}")
+        print(f"Error Relativo          : {rel_error:.4f} %")
+        print(f"Fidelidad Cuántica      : {fidelity:.6f}")
+        print(f"Desviación Pearson      : {pearson_dev:.6f}")
+    
     print(f"Tiempo de Ejecución     : {exec_time:.2f} segundos")
     print("=========================================================\n")
     
@@ -147,58 +152,57 @@ def run_arvit_direct_2d():
     
     if energies:
         all_iters = np.arange(len(energies))
-        abs_errors_all = np.abs(np.array(energies) - exact_energy)
-
-       
+        
+        
         plt.figure(figsize=(10, 6))
         
-       
-        leyenda_vmc = (f"Energía VMC\n"
-                       f"Métricas Finales (Best Iter):\n"
-                       f"• Error Rel: {rel_error:.4f}%\n"
-                       f"• Fidelidad: {fidelity:.4f}")
-        
+        if exact_energy is not None:
+            leyenda_vmc = (f"Energía VMC\n"
+                           f"Métricas Finales:\n"
+                           f"• Error Rel: {rel_error:.4f}%\n"
+                           f"• Fidelidad: {fidelity:.4f}")
+            plt.axhline(y=exact_energy, color='#d62728', linestyle='--', linewidth=2, label=f"Energía Exacta ({exact_energy:.4f})")
+        else:
+            leyenda_vmc = f"Energía VMC (Mejor: {vmc_energy_best:.4f})"
+            
         plt.plot(all_iters, energies, label=leyenda_vmc, color='#1f77b4', linewidth=2)
-        plt.axhline(y=exact_energy, color='#d62728', linestyle='--', linewidth=2, label=f"Energía Exacta ({exact_energy:.4f})")
         
         plt.xlabel("Épocas (Iteraciones)", fontsize=13, fontweight='bold')
         plt.ylabel("Energía $E$", fontsize=13, fontweight='bold')
         plt.title(f"Convergencia de la Energía - Malla 2D {Lx}x{Ly}", fontsize=15, pad=15)
         plt.grid(True, linestyle=':', alpha=0.7)
-        
-       
         plt.legend(fontsize=10, loc='upper right') 
         
         
-        plt.xlim(0, 450) 
+        plt.xlim(0, max(n_iteraciones, len(energies))) 
         plt.tight_layout()
-        
         
         path_conv = os.path.join(base_tfg_dir, "convergencia_energia_2D.png")
         plt.savefig(path_conv, dpi=300)
         plt.close()
 
         
-        plt.figure(figsize=(10, 6))
-        plt.plot(all_iters, abs_errors_all, label=r"Error Absoluto $|E_{VMC} - E_{Exact}|$", color='#ff7f0e', linewidth=2)
-        plt.yscale('log')
-        plt.xlabel("Épocas (Iteraciones)", fontsize=13, fontweight='bold')
-        plt.ylabel("Error Absoluto (Escala Log)", fontsize=13, fontweight='bold')
-        plt.title(f"Evolución del Error Absoluto - Malla 2D {Lx}x{Ly}", fontsize=15, pad=15)
-        plt.grid(True, which="both", linestyle=':', alpha=0.5)
-        plt.legend(fontsize=12)
-        
-       
-        plt.xlim(0, 1000) 
-        plt.tight_layout()
-        
-       
-        path_err = os.path.join(base_tfg_dir, "error_relativo_2D.png")
-        plt.savefig(path_err, dpi=300)
-        plt.close()
-
-        print(f"[√] Gráfica guardada en TFG_ARViT: {path_conv}")
-        print(f"[√] Gráfica guardada en TFG_ARViT: {path_err}")
+        if exact_energy is not None:
+            abs_errors_all = np.abs(np.array(energies) - exact_energy)
+            
+            plt.figure(figsize=(10, 6))
+            plt.plot(all_iters, abs_errors_all, label=r"Error Absoluto $|E_{VMC} - E_{Exact}|$", color='#ff7f0e', linewidth=2)
+            plt.yscale('log')
+            plt.xlabel("Épocas (Iteraciones)", fontsize=13, fontweight='bold')
+            plt.ylabel("Error Absoluto (Escala Log)", fontsize=13, fontweight='bold')
+            plt.title(f"Evolución del Error Absoluto - Malla 2D {Lx}x{Ly}", fontsize=15, pad=15)
+            plt.grid(True, which="both", linestyle=':', alpha=0.5)
+            plt.legend(fontsize=12)
+            
+            plt.xlim(0, max(n_iteraciones, len(energies))) 
+            plt.tight_layout()
+            
+            path_err = os.path.join(base_tfg_dir, "error_relativo_2D.png")
+            plt.savefig(path_err, dpi=300)
+            plt.close()
+            print(f"[√] Gráfica de error guardada en: {path_err}")
+            
+        print(f"[√] Gráfica de convergencia guardada en: {path_conv}")
         
     else:
         print("[X] Problema leyendo el log. No se generaron gráficas.")
