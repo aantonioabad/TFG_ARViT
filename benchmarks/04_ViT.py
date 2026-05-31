@@ -30,7 +30,7 @@ def run_vit_metropolis():
 
     
     model = BatchedSpinViT(
-        token_size=2,
+        token_size=1, 
         embedding_d=8,
         n_heads=2,
         n_blocks=2,
