@@ -1,116 +1,127 @@
 import os
 import sys
-
-# Obtenemos la ruta de la carpeta raíz (/content/TFG_ARViT)
-# Como estamos en /content/TFG_ARViT/plots, el padre es /content/TFG_ARViT
-current_dir = os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.dirname(current_dir)
-
-# Añadimos la raíz al path si no está ya
-if parent_dir not in sys.path:
-    sys.path.append(parent_dir)
-
-# AHORA ya puedes importar physics
-from physics.hamiltonian import get_Hamiltonian
+import time
 import jax
 import jax.numpy as jnp
+import numpy as np 
+import scipy.sparse.linalg
 import netket as nk
 import optax
-import time
-import numpy as np
-import scipy.sparse.linalg as sps
-import matplotlib.pyplot as plt
-from netket.stats import statistics
 
-# --- CONFIGURACIÓN ---
-N = 10
-J = 7.0
-alpha = 6.0
-n_iter = 500
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+sys.path.append(parent_dir)
 
-# 1. Definir Hamiltoniano y Red (Asegúrate de tener tus módulos en el PATH)
-hi = nk.hilbert.Spin(s=0.5, N=N)
-from physics.hamiltonian import get_Hamiltonian 
-H = get_Hamiltonian(N=N, J=J, alpha=alpha, hilbert=hi)
+os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 
-# Calcular Energía Exacta y Estado Exacto para Fidelidad
-H_sparse = H.to_sparse()
-eigvals, eigvecs = sps.eigsh(H_sparse, k=1, which="SA")
-E_exact = eigvals[0]
-psi_exact = eigvecs[:, 0]
+from physics.hamiltonian import get_Hamiltonian
+from physics.utils import BestIterKeeper
+from physics.utils import plot_markov_autocorrelation
+from models.vit_standard import BatchedSpinViT 
 
-from models.vitB import ARSpinViT_Causal
-model = ARSpinViT_Causal(hilbert=hi, embedding_d=8, n_heads=2, n_blocks=2, n_ffn_layers=1)
-
-# 2. Metropolis con Burn-in
-sampler = nk.sampler.MetropolisLocal(hi)
-vstate = nk.vqs.MCState(sampler, model, n_samples=2048, n_discard_per_chain=200, seed=42)
-logger = nk.logging.RuntimeLog()
-
-# 3. Entrenamiento
-optimizer = optax.adam(learning_rate=0.001)
-gs = nk.driver.VMC_SR(H, optimizer, variational_state=vstate, diag_shift=0.1)
-
-print(f"[*] Iniciando entrenamiento (Burn-in 200) para J={J}, alpha={alpha}...")
-start = time.time()
-gs.run(n_iter=n_iter, out=logger)
-print(f"[+] Entrenamiento completado en {time.time()-start:.2f}s.")
-
-# 4. Cálculo de Métricas Rigurosas
-# --- REEMPLAZA EL BLOQUE DE LAS MÉTRICAS POR ESTE ---
-
-# 4. Cálculo de Métricas Finales
-E_calc = vstate.expect(H).mean.real
-err_rel = abs((E_calc - E_exact) / E_exact) * 100
-
-# Fidelidad
-psi_vmc = vstate.to_array()
-psi_vmc /= jnp.linalg.norm(psi_vmc)
-fidelidad = float(jnp.abs(jnp.vdot(psi_vmc, psi_exact))**2)
-
-# Cálculo manual de Tau (Evita el NotImplemetedError de NetKet)
-# raw_samples tiene forma (n_chains, n_samples_per_chain, N_spins)
-# Aplanamos para analizar la serie temporal de espines
-raw_samples = vstate.samples[0, :, :].reshape(-1) 
-
-def compute_tau_int(x):
-    """Calcula el tiempo de autocorrelación integrado de forma robusta."""
-    x = x - np.mean(x)
-    n = len(x)
-    # Función de autocorrelación normalizada
-    result = np.correlate(x, x, mode='full')[n-1:]
-    result /= result[0]
+def run_vit_metropolis():
+    print(">>> BENCHMARK 04: ViT ESTÁNDAR + METROPOLIS SAMPLING")
+    print("---------------------------------------------------------")
     
-    # Integramos hasta que la correlación sea insignificante
-    # (Metodología estándar para determinar pasos independientes en MCMC)
-    tau_int = 0.5 + np.sum(result[1:])
-    return max(tau_int, 0.0)
+    N = 10
+    hi = nk.hilbert.Spin(s=0.5, N=N)
+    H = get_Hamiltonian(N, J=1.0, alpha=3.0, hilbert=hi)
 
-tau_c = compute_tau_int(raw_samples)
+    model = BatchedSpinViT(
+        token_size=1, 
+        embedding_d=8,
+        n_heads=2,
+        n_blocks=2,
+        n_ffn_layers=1,
+        final_architecture=(8, 4), 
+        is_complex=False
+    )
 
-print("\n" + "="*35)
-print("🎯 MÉTRICAS COMPLETAS PARA TFG")
-print("="*35)
-print(f"Energía Exacta  : {E_exact:.6f}")
-print(f"Energía VMC     : {E_calc:.6f}")
-print(f"Error Relativo  : {err_rel:.4f} %")
-print(f"Fidelidad (F)   : {fidelidad:.6f}")
-print(f"Tau_c (int)     : {tau_c:.4f}")
-print("="*35)
+    sampler = nk.sampler.MetropolisLocal(
+        hi,
+        n_chains=1, # Número de exploradores en paralelo
+        sweep_size=1   # Muestras que se dejan pasar entre extracciones
+    )
+    vstate = nk.vqs.MCState(sampler, model, n_samples=2048, seed=42)
+    
+    optimizer = optax.adam(learning_rate=0.001)
+    gs = nk.driver.VMC_SR(H, optimizer, variational_state=vstate, diag_shift=0.1)
 
-# 5. Gráfica de Autocorrelación
-# Representamos la caída de la correlación para justificar el burn-in/muestreo
-x = raw_samples - np.mean(raw_samples)
-ac = np.correlate(x, x, mode='full')[len(x)-1:]
-ac /= ac[0]
+    print("Precalentando y compilando con JAX...")
+    gs.run(n_iter=1, show_progress=False)
+    jax.block_until_ready(vstate.variables)
 
-plt.figure(figsize=(8, 4))
-plt.plot(ac[:100], color='blue', label='Correlación $\langle s_i(t)s_i(0) \rangle$')
-plt.axhline(0, color='black', linestyle='--', linewidth=0.5)
-plt.title(f"Caída de la Autocorrelación (J={J}, $\\alpha$={alpha})")
-plt.xlabel("Lag (pasos de Metropolis)")
-plt.ylabel("Correlación")
-plt.grid(True, alpha=0.3)
-plt.legend()
-plt.savefig("autocorr_plot.png")
-print("[✔] Gráfica 'autocorr_plot.png' guardada.")
+    keeper = BestIterKeeper(Hamiltonian=H, N=N, baseline=1e-6)
+
+    print("Iniciando benchmark cronometrado...")
+    start_time = time.time()
+    
+    log = nk.logging.JsonLog("resultado_benchmark_04_ViT.2", save_params=False)
+    gs.run(n_iter=1000, out=log, show_progress=True, callback=keeper.update)
+    
+    jax.block_until_ready(vstate.variables)
+    end_time = time.time()
+    
+    print(f"\nEntrenamiento terminado. Restaurando la mejor iteración (Energia: {keeper.best_energy:.6f})...")
+    vstate.parameters = keeper.best_state.parameters
+
+    print("Calculando métricas finales...")
+    E_stat = vstate.expect(H)
+    E_mean = E_stat.mean.real
+    E_var = E_stat.variance.real
+    tau_c = getattr(E_stat, "tau_corr", 0.0)
+    pearson_dev = jnp.sqrt(E_var) / abs(E_mean)
+
+    H_sparse = H.to_sparse()
+    evals, evecs = scipy.sparse.linalg.eigsh(H_sparse, k=1, which="SA")
+    psi_exact = evecs[:, 0]
+    E_exact = evals[0]
+
+    psi_vmc = vstate.to_array(normalize=True)
+    overlap = float(jnp.abs(jnp.vdot(psi_exact, psi_vmc))**2)
+
+    # =================================================================
+    # NUEVO: CÁLCULO DEL TIEMPO DE DECAIMIENTO DISCRETO AL 10% (C_t <= 0.1)
+    # =================================================================
+    print("Calculando el paso exacto de caída al 10%...")
+    
+    E_loc = np.array(vstate.local_estimators(H).real)[0]
+    
+    E_mean_chain = np.mean(E_loc)
+    E_var_chain = np.var(E_loc)
+    
+    t_10_percent = "> Max Lag" 
+    max_lag_search = min(200, len(E_loc) - 1)
+    
+    for t in range(1, max_lag_search):
+        cov_t = np.mean((E_loc[:-t] - E_mean_chain) * (E_loc[t:] - E_mean_chain))
+        c_t = cov_t / E_var_chain
+        
+        if c_t <= 0.1:
+            t_10_percent = t
+            break
+    # =================================================================
+
+    print("\n>>> RESULTADOS FINALES:")
+    print(f"Energia VMC       : {E_mean:.6f}")
+    print(f"Energia Exacta    : {E_exact:.6f}")
+    print(f"Error Relativo    : {abs((E_mean - E_exact)/E_exact):.2%}")
+    print(f"Desviacion Pearson: {pearson_dev:.6f}")
+    print(f"Fidelidad         : {overlap:.6f}")
+    print(f"Autocorrelación τ (Integral): {tau_c:.4f}")
+    print(f"Pasos decorrelación (10%)   : {t_10_percent}") # <-- NUEVA MÉTRICA
+    print(f"Tiempo puro       : {end_time - start_time:.2f} s")
+    
+
+    benchmark_title = "ViT + Metropolis"
+        
+    plot_markov_autocorrelation(
+        vstate=vstate, 
+        H=H, 
+        benchmark_name=benchmark_title, 
+        max_lag=40, 
+        filename="autocorr_04_ViT.2.png" 
+    ) 
+
+if __name__ == "__main__":
+    run_vit_metropolis()
