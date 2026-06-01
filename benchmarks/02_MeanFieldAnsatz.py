@@ -3,6 +3,7 @@ import sys
 import time
 import jax
 import jax.numpy as jnp
+import numpy as np
 import scipy.sparse.linalg
 import netket as nk
 import optax
@@ -60,9 +61,6 @@ def run_jastrow_metropolis():
     print("Calculando métricas finales...")
     E_stat = vstate.expect(H)
 
-    print("Calculando métricas finales...")
-    E_stat = vstate.expect(H)
-
     E_mean = E_stat.mean.real
     E_var = E_stat.variance.real
     tau_c = getattr(E_stat, "tau_corr", 0.0)
@@ -76,13 +74,34 @@ def run_jastrow_metropolis():
     psi_vmc = vstate.to_array(normalize=True)
     overlap = float(jnp.abs(jnp.vdot(psi_exact, psi_vmc))**2)
 
+    print("Calculando el paso exacto de caída al 10%...")
+    
+    # Obtenemos las energías locales (E_L) de la cadena de Markov
+    E_loc = np.array(vstate.local_estimators(H).real)[0]
+    
+    E_mean_chain = np.mean(E_loc)
+    E_var_chain = np.var(E_loc)
+    
+    t_10_percent = "> Max Lag" 
+    max_lag_search = min(200, len(E_loc) - 1) # Búsqueda máxima de 200 pasos
+    
+    for t in range(1, max_lag_search):
+        # Autocorrelación discreta
+        cov_t = np.mean((E_loc[:-t] - E_mean_chain) * (E_loc[t:] - E_mean_chain))
+        c_t = cov_t / E_var_chain
+        
+        if c_t <= 0.1:
+            t_10_percent = t
+            break
+
     print("\n>>> RESULTADOS FINALES:")
     print(f"Energia VMC       : {E_mean:.6f}")
     print(f"Energia Exacta    : {E_exact:.6f}")
     print(f"Error Relativo    : {abs((E_mean - E_exact)/E_exact):.2%}")
     print(f"Desviacion Pearson: {pearson_dev:.6f}")
     print(f"Fidelidad         : {overlap:.6f}")
-    print(f"Autocorrelación τ : {tau_c:.4f}")
+    print(f"Autocorrelación τ (Integral): {tau_c:.4f}")
+    print(f"Pasos decorrelación (10%)   : {t_10_percent}") # <-- NUEVA MÉTRICA
     print(f"Tiempo puro       : {end_time - start_time:.2f} s")
     
     benchmark_title = "Mean Field"

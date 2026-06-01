@@ -109,7 +109,7 @@ def run_vit_metropolis():
     print(f"Desviacion Pearson: {pearson_dev:.6f}")
     print(f"Fidelidad         : {overlap:.6f}")
     print(f"Autocorrelación τ (Integral): {tau_c:.4f}")
-    print(f"Pasos decorrelación (10%)   : {t_10_percent}") # <-- NUEVA MÉTRICA
+    print(f"Pasos de correlación (10%)   : {t_10_percent}") 
     print(f"Tiempo puro       : {end_time - start_time:.2f} s")
     
 

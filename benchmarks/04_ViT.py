@@ -3,6 +3,7 @@ import sys
 import time
 import jax
 import jax.numpy as jnp
+import numpy as np 
 import scipy.sparse.linalg
 import netket as nk
 import optax
@@ -26,7 +27,6 @@ def run_vit_metropolis():
     hi = nk.hilbert.Spin(s=0.5, N=N)
     H = get_Hamiltonian(N, J=1.0, alpha=3.0, hilbert=hi)
 
-    
     model = BatchedSpinViT(
         token_size=1, 
         embedding_d=8,
@@ -37,7 +37,6 @@ def run_vit_metropolis():
         is_complex=False
     )
 
-    
     sampler = nk.sampler.MetropolisLocal(
         hi,
         n_chains=1, # Número de exploradores en paralelo
@@ -81,13 +80,36 @@ def run_vit_metropolis():
     psi_vmc = vstate.to_array(normalize=True)
     overlap = float(jnp.abs(jnp.vdot(psi_exact, psi_vmc))**2)
 
+    # =================================================================
+    # NUEVO: CÁLCULO DEL TIEMPO DE DECAIMIENTO DISCRETO AL 10% (C_t <= 0.1)
+    # =================================================================
+    print("Calculando el paso exacto de caída al 10%...")
+    
+    E_loc = np.array(vstate.local_estimators(H).real)[0]
+    
+    E_mean_chain = np.mean(E_loc)
+    E_var_chain = np.var(E_loc)
+    
+    t_10_percent = "> Max Lag" 
+    max_lag_search = min(200, len(E_loc) - 1)
+    
+    for t in range(1, max_lag_search):
+        cov_t = np.mean((E_loc[:-t] - E_mean_chain) * (E_loc[t:] - E_mean_chain))
+        c_t = cov_t / E_var_chain
+        
+        if c_t <= 0.1:
+            t_10_percent = t
+            break
+    # =================================================================
+
     print("\n>>> RESULTADOS FINALES:")
     print(f"Energia VMC       : {E_mean:.6f}")
     print(f"Energia Exacta    : {E_exact:.6f}")
     print(f"Error Relativo    : {abs((E_mean - E_exact)/E_exact):.2%}")
     print(f"Desviacion Pearson: {pearson_dev:.6f}")
     print(f"Fidelidad         : {overlap:.6f}")
-    print(f"Autocorrelación τ : {tau_c:.4f}")
+    print(f"Autocorrelación τ (Integral): {tau_c:.4f}")
+    print(f"Pasos de correlación (10%)   : {t_10_percent}") 
     print(f"Tiempo puro       : {end_time - start_time:.2f} s")
     
 
@@ -99,7 +121,7 @@ def run_vit_metropolis():
         benchmark_name=benchmark_title, 
         max_lag=40, 
         filename="autocorr_04_ViT.2.png" 
-        ) 
+    ) 
 
 if __name__ == "__main__":
     run_vit_metropolis()
