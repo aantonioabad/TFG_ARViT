@@ -159,8 +159,8 @@ def plot_markov_autocorrelation(vstate, H, benchmark_name, max_lag=100, filename
         plt.axhline(0, color='gray', linestyle='--', linewidth=2.0, alpha=0.7)
         
         # ETIQUETAS DE EJE GIGANTES Y EN NEGRITA
-        plt.xlabel("Distancia en la cadena (Lag $t$, pasos cadena)", fontsize=24, fontweight='bold')
-        plt.ylabel(r"Autocorrelación $C(t)$ (Energía)", fontsize=24, fontweight='bold')
+        plt.xlabel("Distancia en la cadena", fontsize=24, fontweight='bold')
+        plt.ylabel(r"Autocorrelación $C(t)$", fontsize=24, fontweight='bold')
         
         # NÚMEROS DE LOS EJES ENORMES
         plt.tick_params(axis='both', which='major', labelsize=20)
