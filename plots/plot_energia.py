@@ -119,12 +119,12 @@ if __name__ == "__main__":
     
     # Diccionario de logs
     logs_a_procesar = {
-        "resultado_benchmark_02_Jastrow.log": "02 - Jastrow (Mean Field) + Metropolis",
-        "resultado_benchmark_03_RBM.log": "03 - RBM + Metropolis",
-        "resultado_benchmark_04_ViT.2.log": "04 - ViT + Metropolis",
-        "resultado_benchmark_05_AR.log": "05 - ARNNDense + Metropolis",
-        "resultado_benchmark_06_ARNN.log": "06 - ARNNDense + Direct Sampling",
-        "resultado_benchmark_06_ARViT.log": "06 - ARViT + Direct Sampling"
+        "resultado_benchmark_02.log": "02 - Jastrow (Mean Field) + Metropolis",
+        "resultado_benchmark_03.log": "03 - RBM + Metropolis",
+        "resultado_benchmark_04.log": "04 - ViT + Metropolis",
+        "resultado_benchmark_05.log": "05 - ARNNDense + Metropolis",
+        "resultado_benchmark_06.log": "06 - ARNNDense + Direct Sampling",
+        "resultado_benchmark_06B.log": "06 - ARViT + Direct Sampling"
     }
 
     for log_file, title in logs_a_procesar.items():
