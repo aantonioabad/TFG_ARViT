@@ -113,27 +113,27 @@ if __name__ == "__main__":
     # Aquí puedes ajustar el "max_iters" para cada modelo como mejor te convenga
     # ==============================================================================
     logs_a_procesar = {
-        "resultado_benchmark_02_Jastrow.log": {
+        "resultado_benchmark_02.log": {
             "title": "02 - Jastrow (Mean Field) + Metropolis",
             "err_rel": "0.01", "fidelidad": "0.988098", "max_iters":400 
         },
-        "resultado_benchmark_03_RBM.log": {
+        "resultado_benchmark_03.log": {
             "title": "03 - RBM + Metropolis",
             "err_rel": "0.09", "fidelidad": "0.996943", "max_iters": 400
         },
-        "resultado_benchmark_04_ViT.2.log": {
+        "resultado_benchmark_04.log": {
             "title": "04 - ViT + Metropolis",
             "err_rel": "0.05", "fidelidad": "0.995845", "max_iters": 300
         },
-        "resultado_benchmark_05_AR.log": {
+        "resultado_benchmark_05.log": {
             "title": "05 - ARNNDense + Metropolis",
             "err_rel": "0.07", "fidelidad": "0.999247", "max_iters": 80
         },
-        "resultado_benchmark_06_ARNN.log": {
+        "resultado_benchmark_06.log": {
             "title": "06 - ARNNDense + Direct Sampling",
             "err_rel": "0.07", "fidelidad": "0.999465", "max_iters": 80
         },
-        "resultado_benchmark_06_ARViT.log": {
+        "resultado_benchmark_06B.log": {
             "title": "06 - ARViT + Direct Sampling",
             "err_rel": "0.00", "fidelidad": "0.999338", "max_iters": 300
         }
