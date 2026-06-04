@@ -51,19 +51,16 @@ def generar_todas_las_comparativas_top():
     enfrentamientos = [
         {
             "pareja": ["ARNN (Metropolis)", "ARNN"],
-            "titulo": "Comparativa de Convergencia: ARNN (Metropolis vs Directo)",
             "archivo": "comparativa_05_vs_06.png",
-            "x_max": 80  # 900 épocas para poder ver la convergencia completa de Metropolis
+            "x_max": 80  
         },
         {
             "pareja": ["ViT", "ARNN", "ARViT"],
-            "titulo": "Comparativa de Convergencia: ViT vs ARNN vs ARViT",
             "archivo": "comparativa_04_vs_06_vs_06B.png",
-            "x_max": 400  # 900 épocas para ver la evolución de los tres modelos juntos
+            "x_max": 400  #
         },
         {
             "pareja": ["ViT", "ARViT"],
-            "titulo": "Comparativa Completa de Convergencia: ViT vs ARViT",
             "archivo": "comparativa_04_vs_06B.png",
             "x_max": 400  # 900 épocas para ver la evolución completa de todos los modelos
         }
@@ -78,8 +75,9 @@ def generar_todas_las_comparativas_top():
     for combate in enfrentamientos:
         print(f"[*] Procesando: {combate['archivo']}...")
         
-        with plt.rc_context({'font.family': 'serif', 'font.size': 11, 'axes.spines.top': True, 'axes.spines.right': True}):
-            fig, ax = plt.subplots(figsize=(9.5, 6), dpi=150)
+        # Aumentamos el tamaño base de la fuente general a 16
+        with plt.rc_context({'font.family': 'serif', 'font.size': 16, 'axes.spines.top': True, 'axes.spines.right': True}):
+            fig, ax = plt.subplots(figsize=(10, 6), dpi=150)
             
             for nombre_modelo in combate['pareja']:
                 datos_modelo = modelos[nombre_modelo]
@@ -102,14 +100,20 @@ def generar_todas_las_comparativas_top():
                 # Generar la etiqueta con formato LaTeX
                 label_completo = rf"{nombre_modelo} ($\epsilon_r$: {err_str}, $P$: {pearson_str})"
                 
-                ax.plot(iters, energy_mean, label=label_completo, color=datos_modelo['color'], linewidth=1.5, alpha=0.85)
+                # Engrosamos un poco la línea (linewidth=2.0) para que se vea mejor al reducir la imagen
+                ax.plot(iters, energy_mean, label=label_completo, color=datos_modelo['color'], linewidth=2.0, alpha=0.85)
 
-            # Línea de energía exacta
-            ax.axhline(E_exacta, color="black", linestyle="--", linewidth=1.5, label=f"Energía Exacta ({E_exacta_label:.4f})")
+            
+            ax.axhline(E_exacta, color="black", linestyle="--", linewidth=2.0, label=f"Energía Exacta ({E_exacta_label:.4f})")
 
-            ax.set_title(combate['titulo'], pad=15, fontweight='bold')
-            ax.set_xlabel("Épocas")
-            ax.set_ylabel(r"Energía, $\langle H \rangle$")
+            # ax.set_title(combate['titulo'], pad=15, fontweight='bold')
+            
+            # ETIQUETAS DE EJE ENORMES Y EN NEGRITA
+            ax.set_xlabel("Épocas", fontsize=18, fontweight='bold')
+            ax.set_ylabel(r"Energía, $\langle H \rangle$", fontsize=18, fontweight='bold')
+            
+            # NÚMEROS DE LOS EJES GRANDES
+            ax.tick_params(axis='both', which='major', labelsize=14)
             
             ax.set_xlim(0, combate['x_max'])
             ax.set_ylim(E_exacta - 0.05, -10.0) 
@@ -117,7 +121,8 @@ def generar_todas_las_comparativas_top():
             ax.grid(True, linestyle='-', color='#E5E8E8', linewidth=1.0)
             ax.yaxis.set_major_locator(MaxNLocator(nbins=12))
             
-            ax.legend(loc="upper right", frameon=True, fontsize=9.5, facecolor='#FDFEFE', edgecolor='#BDC3C7')
+            
+            ax.legend(loc="upper right", frameon=True, fontsize=14, facecolor='#FDFEFE', edgecolor='#BDC3C7')
             
             output_path = os.path.join(current_dir, combate['archivo'])
             plt.tight_layout()
