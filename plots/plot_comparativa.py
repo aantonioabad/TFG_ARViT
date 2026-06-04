@@ -55,6 +55,11 @@ def generar_todas_las_comparativas_top():
             "x_max": 80  
         },
         {
+            "pareja": ["ViT", "RBM", "ARNN (Metropolis)"],
+            "archivo": "comparativa_04_vs_05_vs_03.png",
+            "x_max": 80  
+        },
+        {
             "pareja": ["ViT", "ARNN", "ARViT"],
             "archivo": "comparativa_04_vs_06_vs_06B.png",
             "x_max": 400  #
@@ -69,14 +74,14 @@ def generar_todas_las_comparativas_top():
     # ==============================================================================
 
     print("\n" + "="*80)
-    print("📊 GENERANDO GRÁFICAS (VALORES FORZADOS DESDE TABLA) 📊")
+    print("📊 GENERANDO GRÁFICAS (TAMAÑO DE TEXTO EXTREMO) 📊")
     print("="*80 + "\n")
 
     for combate in enfrentamientos:
         print(f"[*] Procesando: {combate['archivo']}...")
         
-        # Aumentamos el tamaño base de la fuente general a 16
-        with plt.rc_context({'font.family': 'serif', 'font.size': 16, 'axes.spines.top': True, 'axes.spines.right': True}):
+        # Aumentamos el tamaño base de la fuente a 22
+        with plt.rc_context({'font.family': 'serif', 'font.size': 22, 'axes.spines.top': True, 'axes.spines.right': True}):
             fig, ax = plt.subplots(figsize=(10, 6), dpi=150)
             
             for nombre_modelo in combate['pareja']:
@@ -93,27 +98,23 @@ def generar_todas_las_comparativas_top():
                 iters = data['Energy']['iters']
                 energy_mean = np.array([e.get('real', 0.0) if isinstance(e, dict) else float(np.real(e)) for e in data['Energy']['Mean']])
                 
-                # RECOGER VALORES EXACTOS FIJADOS EN EL DICCIONARIO
                 err_str = datos_modelo["err_str"]
                 pearson_str = datos_modelo["pearson_str"]
                 
-                # Generar la etiqueta con formato LaTeX
                 label_completo = rf"{nombre_modelo} ($\epsilon_r$: {err_str}, $P$: {pearson_str})"
                 
-                # Engrosamos un poco la línea (linewidth=2.0) para que se vea mejor al reducir la imagen
-                ax.plot(iters, energy_mean, label=label_completo, color=datos_modelo['color'], linewidth=2.0, alpha=0.85)
+                # Líneas más gruesas (2.5) para que no se pierdan con el texto tan grande
+                ax.plot(iters, energy_mean, label=label_completo, color=datos_modelo['color'], linewidth=2.5, alpha=0.85)
 
-            
-            ax.axhline(E_exacta, color="black", linestyle="--", linewidth=2.0, label=f"Energía Exacta ({E_exacta_label:.4f})")
+            # Línea de energía exacta
+            ax.axhline(E_exacta, color="black", linestyle="--", linewidth=2.5, label=f"Energía Exacta ({E_exacta_label:.4f})")
 
-            # ax.set_title(combate['titulo'], pad=15, fontweight='bold')
+            # ETIQUETAS DE EJE GIGANTES (Tamaño 24)
+            ax.set_xlabel("Épocas", fontsize=24, fontweight='bold')
+            ax.set_ylabel(r"Energía, $\langle H \rangle$", fontsize=24, fontweight='bold')
             
-            # ETIQUETAS DE EJE ENORMES Y EN NEGRITA
-            ax.set_xlabel("Épocas", fontsize=18, fontweight='bold')
-            ax.set_ylabel(r"Energía, $\langle H \rangle$", fontsize=18, fontweight='bold')
-            
-            # NÚMEROS DE LOS EJES GRANDES
-            ax.tick_params(axis='both', which='major', labelsize=14)
+            # NÚMEROS DE LOS EJES ENORMES (Tamaño 20)
+            ax.tick_params(axis='both', which='major', labelsize=20)
             
             ax.set_xlim(0, combate['x_max'])
             ax.set_ylim(E_exacta - 0.05, -10.0) 
@@ -121,8 +122,8 @@ def generar_todas_las_comparativas_top():
             ax.grid(True, linestyle='-', color='#E5E8E8', linewidth=1.0)
             ax.yaxis.set_major_locator(MaxNLocator(nbins=12))
             
-            
-            ax.legend(loc="upper right", frameon=True, fontsize=14, facecolor='#FDFEFE', edgecolor='#BDC3C7')
+            # LEYENDA GIGANTE (Tamaño 18)
+            ax.legend(loc="upper right", frameon=True, fontsize=18, facecolor='#FDFEFE', edgecolor='#BDC3C7')
             
             output_path = os.path.join(current_dir, combate['archivo'])
             plt.tight_layout()
