@@ -57,7 +57,7 @@ def generar_todas_las_comparativas_top():
         {
             "pareja": ["ViT", "RBM", "ARNN (Metropolis)"],
             "archivo": "comparativa_04_vs_05_vs_03.png",
-            "x_max": 80  
+            "x_max": 400  
         },
         {
             "pareja": ["ViT", "ARNN", "ARViT"],
