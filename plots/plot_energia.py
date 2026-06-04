@@ -68,38 +68,40 @@ def plot_benchmark_training(log_path, benchmark_name, output_filename, exact_ene
                      f"Error Rel: {rel_error:.4f}%\n"
                      f"Fidelidad: N/A")
 
-    # ESTÉTICA DE ARTÍCULO CIENTÍFICO (LaTeX-like)
+    # ESTÉTICA DE ARTÍCULO CIENTÍFICO (Modo póster gigante)
     with plt.rc_context({
         'font.family': 'serif',
-        'font.size': 11,
-        'axes.labelsize': 12,
-        'axes.titlesize': 11,
-        'xtick.labelsize': 10,
-        'ytick.labelsize': 10,
+        'font.size': 22,
         'axes.spines.top': True,
         'axes.spines.right': True,
     }):
-        fig, ax = plt.subplots(figsize=(8, 5), dpi=150)
+        fig, ax = plt.subplots(figsize=(10, 6), dpi=150)
 
         color_data = "#5499C7"    # Azul acero pastel
         color_exact = "#F1948A"   # Salmón/Rojo pastel
 
-        # 1. Datos crudos con la nueva leyenda de métricas
-        ax.plot(iters, energy_mean, color=color_data, linewidth=1.2, label=label_vmc)
+        # 1. Datos crudos con la nueva leyenda de métricas y línea gruesa
+        ax.plot(iters, energy_mean, color=color_data, linewidth=2.5, label=label_vmc)
         
-        # 2. Línea exacta
-        ax.axhline(exact_energy, color=color_exact, linestyle="--", linewidth=1.8, 
+        # 2. Línea exacta gruesa
+        ax.axhline(exact_energy, color=color_exact, linestyle="--", linewidth=2.5, 
                     label=f"Energía Exacta ({exact_energy:.4f})")
 
-        ax.set_title(benchmark_name.upper(), pad=12)
-        ax.set_xlabel("Épocas (Iteraciones)")
-        ax.set_ylabel(r"Energía $\langle H \rangle$")
+        # TÍTULO ELIMINADO PARA FORMATO LATEX
+        # ax.set_title(benchmark_name.upper(), pad=12)
+        
+        # ETIQUETAS DE EJE GIGANTES
+        ax.set_xlabel("Épocas (Iteraciones)", fontsize=24, fontweight='bold')
+        ax.set_ylabel(r"Energía $\langle H \rangle$", fontsize=24, fontweight='bold')
+        
+        # NÚMEROS DE LOS EJES ENORMES
+        ax.tick_params(axis='both', which='major', labelsize=20)
         
         ax.grid(True, linestyle='-', color='#E5E8E8', linewidth=1.0)
         ax.yaxis.set_major_locator(MaxNLocator(nbins=12))
 
-        # Leyenda ajustada para que quepa el bloque de texto
-        ax.legend(loc="upper right", frameon=True, fontsize=9, edgecolor='black', facecolor='white', framealpha=0.9)
+        # Leyenda ajustada: tamaño 16 para que la caja multilínea encaje perfectamente
+        ax.legend(loc="upper right", frameon=True, fontsize=16, edgecolor='#BDC3C7', facecolor='#FDFEFE', framealpha=0.9)
         
         plt.tight_layout()
         plt.savefig(output_filename, dpi=300, bbox_inches='tight')
