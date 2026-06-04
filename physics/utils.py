@@ -121,76 +121,54 @@ def acf_helper(x):
     corr = np.correlate(x_centered, x_centered, mode='full')
     return corr[len(corr)//2:] / norm
 
-def plot_markov_autocorrelation(
-    vstate, 
-    H, 
-    benchmark_name: str, 
-    max_lag=50, 
-    filename="autocorrelacion.png"
-):
+def plot_markov_autocorrelation(vstate, H, benchmark_name, max_lag=100, filename="autocorr.png"):
     """
-    Genera una gráfica de autocorrelación temporal profesional y científica
-    para una tesis (TFG). Limita colores, aumenta legibilidad y personaliza el título.
+    Calcula y grafica la autocorrelación de la cadena de Markov (Energía Local)
+    utilizando un formato de texto gigante y eliminando el título de la gráfica.
     """
-    print(f"\nGenerando gráfica profesional para '{benchmark_name}' en: {filename} ...")
+    # 1. Extraer las energías locales de la cadena de Markov
+    # Asumimos que hay 1 sola cadena (n_chains=1), por lo que tomamos el índice [0]
+    E_loc = np.array(vstate.local_estimators(H).real)[0]
     
-    # 1. Obtenemos las energías locales
-    E_loc = vstate.local_estimators(H).real
+    # 2. Cálculo manual de la autocorrelación discreta C(t)
+    E_mean = np.mean(E_loc)
+    E_var = np.var(E_loc)
     
-    # 2. Manejamos Metropolis (2D chains, samples) vs Directo (1D plano)
-    if E_loc.ndim > 1:
-        cadena = np.array(E_loc[0, :]) # Cogemos la primera cadena
-    else:
-        cadena = np.array(E_loc)
-        
-    # 3. Función ACF
-    autocorr_values = acf_helper(cadena)
+    # Asegurarnos de no pedir más lag que el tamaño de la cadena
+    max_lag = min(max_lag, len(E_loc) - 1)
+    lags = np.arange(max_lag)
+    autocorr = []
     
-    # Limitamos los ejes
-    limit = min(max_lag, len(autocorr_values))
-    lags = np.arange(limit)
-    autocorr_values = autocorr_values[:limit]
-
-    # --- CONFIGURACIÓN DE ESTILO PROFESIONAL/CIENTÍFICO ---
-    # Usamos rcParams.update({}) de forma temporal solo para esta figura.
-    # Esto asegura tipografía clara y tamaños legibles para impresión TFG.
-    
-    with plt.rc_context({
-        'font.size': 12,
-        'axes.labelsize': 14,
-        'axes.titlesize': 16,
-        'xtick.labelsize': 11,
-        'ytick.labelsize': 11,
-        'axes.labelpad': 10,
-        'axes.titlepad': 20,
-        'grid.color': "#DDDDDD", # Gris muy sutil y claro para la cuadrícula
-        'grid.alpha': 0.6,
-        'axes.spines.top': False, # Moderno/Limpio: quitar borde superior
-        'axes.spines.right': False, # Moderno/Limpio: quitar borde derecho
-    }):
-        # Usamos un color oscuro/negro para línea/puntos (evitamos el azul chillón)
-        color_data = "#111111" # Casi negro nítido
-        color_zero = "#777777" # Gris medio sutil para la referencia
-
-        plt.figure(figsize=(9, 6), dpi=100) # Un poco más grande para tesis
-
-        # Pintamos datos (línea nítida y puntos pequeños)
-        plt.plot(lags, autocorr_values, marker='o', linestyle='-', color=color_data, markersize=4.5, linewidth=1.2)
+    for t in lags:
+        if t == 0:
+            autocorr.append(1.0)
+        else:
+            cov_t = np.mean((E_loc[:-t] - E_mean) * (E_loc[t:] - E_mean))
+            # Normalizamos con la varianza para que empiece en 1
+            autocorr.append(cov_t / E_var)
+            
+    # 3. Generación de la gráfica en "Modo Póster"
+    with plt.rc_context({'font.family': 'serif', 'font.size': 22, 'axes.spines.top': True, 'axes.spines.right': True}):
+        plt.figure(figsize=(10, 6), dpi=150)
         
-        # Línea de referencia cero: sutil, gris y discontinua
-        plt.axhline(0, color=color_zero, linestyle='--', linewidth=1, alpha=0.9)
+        # Línea de la autocorrelación (Gruesa y con puntos grandes)
+        plt.plot(lags, autocorr, marker='o', linestyle='-', color='black', 
+                 linewidth=2.5, markersize=8, alpha=0.85)
         
-        # Título personalizado incluyendo el nombre del benchmark
-        plt.title(f"Decaimiento de Autocorrelación: {benchmark_name}")
+        # Línea base en y=0
+        plt.axhline(0, color='gray', linestyle='--', linewidth=2.0, alpha=0.7)
         
-        # Etiquetas en español con notación matemática (legibles y profesionales)
-        plt.xlabel("Distancia en la cadena (Lag $t$, pasos cadena)")
-        plt.ylabel("Autocorrelación $C(t)$ (Energía)")
+        # ETIQUETAS DE EJE GIGANTES Y EN NEGRITA
+        plt.xlabel("Distancia en la cadena (Lag $t$, pasos cadena)", fontsize=24, fontweight='bold')
+        plt.ylabel(r"Autocorrelación $C(t)$ (Energía)", fontsize=24, fontweight='bold')
         
-        plt.grid(True)
-        plt.tight_layout() # Asegura que los márgenes se respeten
+        # NÚMEROS DE LOS EJES ENORMES
+        plt.tick_params(axis='both', which='major', labelsize=20)
         
-        # Guardamos en alta calidad (300 dpi es estándar para impresión)
-        plt.savefig(filename, dpi=300)
+        # Cuadrícula para facilitar la lectura visual
+        plt.grid(True, linestyle='-', color='#E5E8E8', linewidth=1.0)
+        
+        plt.tight_layout()
+        plt.savefig(filename, dpi=300, bbox_inches='tight')
         plt.close()
         print(f"[ÉXITO] Gráfica guardada como '{filename}'")
