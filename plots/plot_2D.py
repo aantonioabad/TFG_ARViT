@@ -40,6 +40,11 @@ def plot_convergencia_2d(log_path, output_filename, config):
     energy_mean = extraer_energias(log_path)
     if not energy_mean: return
 
+    # --- MODULAR ITERACIONES ---
+    max_iters = config.get("max_iters", None)
+    if max_iters is not None:
+        energy_mean = energy_mean[:max_iters]
+
     iters = range(len(energy_mean))
     exact_energy = config["E_exact"]
     
@@ -56,6 +61,7 @@ def plot_convergencia_2d(log_path, output_filename, config):
         ax.set_xlabel("Épocas (Iteraciones)", fontsize=24, fontweight='bold')
         ax.set_ylabel(r"Energía $\langle H \rangle$", fontsize=24, fontweight='bold')
         ax.tick_params(axis='both', which='major', labelsize=20)
+        
         ax.set_xlim(0, len(iters))
         ax.grid(True, linestyle='-', color='#E5E8E8', linewidth=1.0)
         ax.yaxis.set_major_locator(MaxNLocator(nbins=12))
@@ -68,11 +74,17 @@ def plot_convergencia_2d(log_path, output_filename, config):
 # ==============================================================================
 # GRÁFICA 2: ERROR RELATIVO LOGARÍTMICO (Naranja)
 # ==============================================================================
-def plot_error_relativo_log(log_path, output_filename, exact_energy):
+def plot_error_relativo_log(log_path, output_filename, config):
     energy_mean = extraer_energias(log_path)
     if not energy_mean: return
 
+    # --- MODULAR ITERACIONES ---
+    max_iters = config.get("max_iters", None)
+    if max_iters is not None:
+        energy_mean = energy_mean[:max_iters]
+
     iters = range(len(energy_mean))
+    exact_energy = config["E_exact"]
     
     # Cálculo del ERROR RELATIVO en porcentaje (%)
     error_rel = [abs((e - exact_energy) / exact_energy) * 100 for e in energy_mean]
@@ -91,8 +103,8 @@ def plot_error_relativo_log(log_path, output_filename, exact_energy):
         ax.set_ylabel("Error Relativo (%) (Escala Log)", fontsize=24, fontweight='bold')
         
         ax.tick_params(axis='both', which='major', labelsize=20)
+        
         ax.set_xlim(0, len(iters))
-            
         ax.grid(True, linestyle='--', color='#E5E8E8', linewidth=1.0, alpha=0.7)
         ax.legend(loc="upper right", frameon=True, fontsize=18, edgecolor='#BDC3C7', facecolor='#FDFEFE', framealpha=0.9)
         
@@ -107,7 +119,6 @@ if __name__ == "__main__":
     
     current_dir = os.path.dirname(os.path.abspath(__file__)) if '__file__' in globals() else os.getcwd()
     
-    # Resolución de la carpeta de destino
     if os.path.exists("/content/TFG_ARViT"):
         logs_dir = "/content/TFG_ARViT"
         out_dir = "/content/TFG_ARViT/plots"
@@ -122,19 +133,21 @@ if __name__ == "__main__":
     print("-" * 70)
 
     experimentos_2d = {
-        "resultado_benchmark_2D2_ARViT.log": { 
+        "resultado_benchmark_2D2_ARViT.log": {  
             "base_name": "2d_2x2",
             "E_exact": -4.958881,
             "err_rel": "0.0473",
             "fidelidad": "0.999297",
-            "v_score": "0.000719"
+            "v_score": "0.000719",
+            "max_iters": 300  # <--- Límite de iteraciones
         },
-        "resultado_benchmark_2D4_ARViT.log": { 
+        "resultado_benchmark_2D4_ARViT.log": {  
             "base_name": "2d_4x4",
             "E_exact": -25.898045,
             "err_rel": "0.1870",
             "fidelidad": "0.852547",
-            "v_score": "0.179719"
+            "v_score": "0.179719",
+            "max_iters": 450  # <--- Límite de iteraciones
         }
     }
 
@@ -142,7 +155,7 @@ if __name__ == "__main__":
         ruta_completa = os.path.join(logs_dir, log_file)
         
         if os.path.exists(ruta_completa):
-            print(f"[*] Procesando: {log_file}...")
+            print(f"[*] Procesando: {log_file} (Límite: {config.get('max_iters', 'Todos los')} pasos)...")
             
             # Gráfica de Energía
             png_energia = os.path.join(out_dir, f"convergencia_energia_{config['base_name']}.png")
@@ -151,9 +164,8 @@ if __name__ == "__main__":
             
             # Gráfica de Error Relativo
             png_error = os.path.join(out_dir, f"error_relativo_{config['base_name']}.png")
-            plot_error_relativo_log(ruta_completa, png_error, config["E_exact"])
+            plot_error_relativo_log(ruta_completa, png_error, config)
             print(f"  [√] Guardada: {png_error}\n")
             
         else:
             print(f"  [X] AVISO: Archivo no encontrado -> {log_file}")
-            print(f"      Asegúrate de que existe en la ruta de logs indicada arriba.\n")

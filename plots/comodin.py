@@ -102,7 +102,7 @@ def plot_autocorrelacion_integrada(E_loc, E_mean, E_var, filename, max_lag=100):
 def reproducir_experimento():
     N = 10
     alpha = 2.5
-    J = -4.0
+    J = 2.75
     
     # Directorio de trabajo
     base_dir = "/content/TFG_ARViT/reproduccion"
