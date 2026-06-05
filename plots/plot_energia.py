@@ -91,7 +91,7 @@ def plot_benchmark_training(log_path, benchmark_name, output_filename, exact_ene
         ax.yaxis.set_major_locator(MaxNLocator(nbins=12))
 
         # Leyenda ajustada para la caja multilínea
-        ax.legend(loc="upper right", frameon=True, fontsize=16, edgecolor='#BDC3C7', facecolor='#FDFEFE', framealpha=0.9)
+        ax.legend(loc="upper right", frameon=True, fontsize=20, edgecolor='#BDC3C7', facecolor='#FDFEFE', framealpha=0.9)
         
         plt.tight_layout()
         plt.savefig(output_filename, dpi=300, bbox_inches='tight')
