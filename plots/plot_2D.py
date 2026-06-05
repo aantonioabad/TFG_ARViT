@@ -65,7 +65,7 @@ def plot_convergencia_2d(log_path, output_filename, config):
         ax.set_xlim(0, len(iters))
         ax.grid(True, linestyle='-', color='#E5E8E8', linewidth=1.0)
         ax.yaxis.set_major_locator(MaxNLocator(nbins=12))
-        ax.legend(loc="upper right", frameon=True, fontsize=22, labelspacing=1.2, edgecolor='#BDC3C7', facecolor='#FDFEFE', framealpha=0.9)
+        ax.legend(loc="upper right", frameon=True, fontsize=20, labelspacing=1.0, edgecolor='#BDC3C7', facecolor='#FDFEFE', framealpha=0.9)
         
         plt.tight_layout()
         plt.savefig(output_filename, dpi=300, bbox_inches='tight')
@@ -139,7 +139,7 @@ if __name__ == "__main__":
             "err_rel": "0.0473",
             "fidelidad": "0.999297",
             "v_score": "0.000719",
-            "max_iters": 300  # <--- Límite de iteraciones
+            "max_iters": 1000  # <--- Límite de iteraciones
         },
         "resultado_benchmark_2D4_ARViT.log": {  
             "base_name": "2d_4x4",
@@ -147,7 +147,7 @@ if __name__ == "__main__":
             "err_rel": "0.1870",
             "fidelidad": "0.852547",
             "v_score": "0.179719",
-            "max_iters": 1000  # <--- Límite de iteraciones
+            "max_iters": 450  # <--- Límite de iteraciones
         }
     }
 
