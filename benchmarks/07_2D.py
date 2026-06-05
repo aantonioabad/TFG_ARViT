@@ -72,7 +72,7 @@ def extraer_energias_log(log_path):
 
 def run_arvit_direct_2d():
     
-    Lx, Ly = 2, 2
+    Lx, Ly = 4, 4
     N = Lx * Ly
     J_val = 1.0
     alpha_val = 2.0
