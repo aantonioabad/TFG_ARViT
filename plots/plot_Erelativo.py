@@ -112,7 +112,7 @@ def generar_errores_relativos():
             
             # Ejes Gigantes
             ax.set_xlabel("Épocas (Iteraciones)", fontsize=24, fontweight='bold')
-            ax.set_ylabel("Error Relativo (Escala Log)", fontsize=24, fontweight='bold')
+            ax.set_ylabel("Error Relativo", fontsize=24, fontweight='bold')
             
             # Números de los ejes grandes
             ax.tick_params(axis='both', which='major', labelsize=20)
