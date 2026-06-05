@@ -118,7 +118,7 @@ def generar_todas_las_comparativas_top():
             ax.grid(True, linestyle='-', color='#E5E8E8', linewidth=1.0)
             ax.yaxis.set_major_locator(MaxNLocator(nbins=12))
             
-            # LEYENDA GIGANTE (Tamaño 18)
+            
             ax.legend(loc="upper right", frameon=True, fontsize=18, facecolor='#FDFEFE', edgecolor='#BDC3C7')
             
             output_path = os.path.join(current_dir, combate['archivo'])

@@ -106,7 +106,7 @@ def plot_error_relativo_log(log_path, output_filename, config):
         
         ax.set_xlim(0, len(iters))
         ax.grid(True, linestyle='--', color='#E5E8E8', linewidth=1.0, alpha=0.7)
-        ax.legend(loc="upper right", frameon=True, fontsize=22, labelspacing=1.2, edgecolor='#BDC3C7', facecolor='#FDFEFE', framealpha=0.9)
+        ax.legend(loc="upper right", frameon=True, fontsize=30, labelspacing=1.2, edgecolor='#BDC3C7', facecolor='#FDFEFE', framealpha=0.9)
         
         plt.tight_layout()
         plt.savefig(output_filename, dpi=300, bbox_inches='tight')
