@@ -139,7 +139,7 @@ if __name__ == "__main__":
             "err_rel": "0.0473",
             "fidelidad": "0.999297",
             "v_score": "0.000719",
-            "max_iters": 300  # <--- Límite de iteraciones
+            "max_iters": 1000  # <--- Límite de iteraciones
         },
         "resultado_benchmark_2D4_ARViT.log": {  
             "base_name": "2d_4x4",
