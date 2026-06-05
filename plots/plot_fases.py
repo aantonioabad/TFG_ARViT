@@ -86,7 +86,7 @@ def plot_convergencia(log_path, output_filename, exact_energy, fidelidad_str):
         ax.yaxis.set_major_locator(MaxNLocator(nbins=12))
 
         # Leyenda ajustada
-        ax.legend(loc="upper right", frameon=True, fontsize=16, edgecolor='#BDC3C7', facecolor='#FDFEFE', framealpha=0.9)
+        ax.legend(loc="upper right", frameon=True, fontsize=20, labelspacing=1.2, edgecolor='#BDC3C7', facecolor='#FDFEFE', framealpha=0.9)
         
         plt.tight_layout()
         plt.savefig(output_filename, dpi=300, bbox_inches='tight')
