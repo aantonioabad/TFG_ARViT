@@ -100,7 +100,7 @@ def plot_error_relativo_log(log_path, output_filename, config):
         ax.set_yscale('log')
         
         ax.set_xlabel("Épocas (Iteraciones)", fontsize=24, fontweight='bold')
-        ax.set_ylabel("Error Relativo (%) (Escala Log)", fontsize=24, fontweight='bold')
+        ax.set_ylabel("Error Relativo", fontsize=24, fontweight='bold')
         
         ax.tick_params(axis='both', which='major', labelsize=20)
         
