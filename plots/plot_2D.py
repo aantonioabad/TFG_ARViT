@@ -33,75 +33,81 @@ def extraer_energias(log_path):
                 
     return energies
 
+# ==============================================================================
+# GRÁFICA 1: CONVERGENCIA DE ENERGÍA (Azul)
+# ==============================================================================
 def plot_convergencia_2d(log_path, output_filename, config):
-    print(f"Procesando: {os.path.basename(log_path)}...")
-    
     energy_mean = extraer_energias(log_path)
-    
-    if not energy_mean:
-        print(f"  [ERROR] No se pudo leer {log_path} o el archivo está vacío.")
-        return
+    if not energy_mean: return
 
     iters = range(len(energy_mean))
     exact_energy = config["E_exact"]
     
-    # --- AUDITORÍA INTERNA EN CONSOLA ---
-    best_energy = min(energy_mean)
-    err_rel_calculado = abs((best_energy - exact_energy) / exact_energy) * 100
-    
-    # --- CONSTRUCCIÓN DE LA LEYENDA (Fuerza los datos de la tabla) ---
     label_vmc = (f"Energía VMC\n"
                  f"Error Rel: {config['err_rel']} %\n"
                  f"Fidelidad: {config['fidelidad']}\n"
                  f"V-score: {config['v_score']}")
 
-    # ESTÉTICA DE ARTÍCULO CIENTÍFICO (Modo póster gigante)
-    with plt.rc_context({
-        'font.family': 'serif',
-        'font.size': 22,
-        'axes.spines.top': True,
-        'axes.spines.right': True,
-    }):
+    with plt.rc_context({'font.family': 'serif', 'font.size': 22, 'axes.spines.top': True, 'axes.spines.right': True}):
         fig, ax = plt.subplots(figsize=(10, 6), dpi=150)
-
-        color_data = "#5499C7"    # Azul acero pastel
-        color_exact = "#F1948A"   # Salmón/Rojo pastel
-
-        # 1. Datos crudos
-        ax.plot(iters, energy_mean, color=color_data, linewidth=2.5, label=label_vmc)
+        ax.plot(iters, energy_mean, color="#5499C7", linewidth=2.5, label=label_vmc)
+        ax.axhline(exact_energy, color="#F1948A", linestyle="--", linewidth=2.5, label=f"Energía Exacta ({exact_energy:.6f})")
         
-        # 2. Línea exacta
-        ax.axhline(exact_energy, color=color_exact, linestyle="--", linewidth=2.5, 
-                    label=f"Energía Exacta ({exact_energy:.6f})")
-        
-        # ETIQUETAS Y EJES GIGANTES (Sin título)
         ax.set_xlabel("Épocas (Iteraciones)", fontsize=24, fontweight='bold')
         ax.set_ylabel(r"Energía $\langle H \rangle$", fontsize=24, fontweight='bold')
-        
         ax.tick_params(axis='both', which='major', labelsize=20)
         ax.set_xlim(0, len(iters))
-            
         ax.grid(True, linestyle='-', color='#E5E8E8', linewidth=1.0)
         ax.yaxis.set_major_locator(MaxNLocator(nbins=12))
-
-        # Leyenda ajustada: Se reduce un poco el tamaño a 15 para que quepan las 4 líneas bien
         ax.legend(loc="upper right", frameon=True, fontsize=15, edgecolor='#BDC3C7', facecolor='#FDFEFE', framealpha=0.9)
         
         plt.tight_layout()
         plt.savefig(output_filename, dpi=300, bbox_inches='tight')
         plt.close()
+
+# ==============================================================================
+# GRÁFICA 2: ERROR RELATIVO LOGARÍTMICO (Naranja)
+# ==============================================================================
+def plot_error_relativo_log(log_path, output_filename, exact_energy):
+    energy_mean = extraer_energias(log_path)
+    if not energy_mean: return
+
+    iters = range(len(energy_mean))
+    
+    # Cálculo del ERROR RELATIVO en porcentaje (%)
+    error_rel = [abs((e - exact_energy) / exact_energy) * 100 for e in energy_mean]
+
+    with plt.rc_context({'font.family': 'serif', 'font.size': 22, 'axes.spines.top': True, 'axes.spines.right': True}):
+        fig, ax = plt.subplots(figsize=(10, 6), dpi=150)
+
+        color_naranja = "#FF7F0E" 
+
+        ax.plot(iters, error_rel, color=color_naranja, linewidth=2.5, 
+                label=r"Error Relativo $\epsilon_{\text{rel}}$ (%)")
         
-        print(f"  [ÉXITO] Guardada como '{os.path.basename(output_filename)}'")
-        print(f"          -> Energía mínima detectada en log: {best_energy:.6f}")
-        print(f"          -> Error Relativo Calculado internamente: {err_rel_calculado:.4f} %")
-        print(f"          -> Error Relativo en Tabla (inyectado): {config['err_rel']} %\n")
+        ax.set_yscale('log')
+        
+        ax.set_xlabel("Épocas (Iteraciones)", fontsize=24, fontweight='bold')
+        ax.set_ylabel("Error Relativo (%) (Escala Log)", fontsize=24, fontweight='bold')
+        
+        ax.tick_params(axis='both', which='major', labelsize=20)
+        ax.set_xlim(0, len(iters))
+            
+        ax.grid(True, linestyle='--', color='#E5E8E8', linewidth=1.0, alpha=0.7)
+        ax.legend(loc="upper right", frameon=True, fontsize=18, edgecolor='#BDC3C7', facecolor='#FDFEFE', framealpha=0.9)
+        
+        plt.tight_layout()
+        plt.savefig(output_filename, dpi=300, bbox_inches='tight')
+        plt.close()
 
 if __name__ == "__main__":
-    print("\n--- GENERANDO GRÁFICAS 2D (RED 2x2 y 4x4) ---\n")
+    print("\n" + "="*70)
+    print(" GENERANDO GRÁFICAS DE ENERGÍA Y ERROR RELATIVO (RED 2D) ")
+    print("="*70)
     
     current_dir = os.path.dirname(os.path.abspath(__file__)) if '__file__' in globals() else os.getcwd()
     
-    # Ajusta las carpetas según dónde vayas a ejecutar el script
+    # Resolución de la carpeta de destino
     if os.path.exists("/content/TFG_ARViT"):
         logs_dir = "/content/TFG_ARViT"
         out_dir = "/content/TFG_ARViT/plots"
@@ -111,20 +117,20 @@ if __name__ == "__main__":
 
     os.makedirs(out_dir, exist_ok=True)
 
-    # ==============================================================================
-    # DICCIONARIO DE EXPERIMENTOS (Datos extraídos de tu tabla)
-    # ¡IMPORTANTE! Cambia los nombres de los '.log' por los que tengas en tu carpeta
-    # ==============================================================================
+    print(f"\n📂 LEYENDO ARCHIVOS LOG DESDE: \n   -> {logs_dir}")
+    print(f"💾 GUARDANDO LAS GRÁFICAS (.PNG) EN: \n   -> {out_dir}\n")
+    print("-" * 70)
+
     experimentos_2d = {
-        "resultado_2d_2x2.log": {  # <--- CAMBIA ESTO por tu nombre real
-            "output": "convergencia_2d_2x2.png",
+        "resultado_benchmark_2D2_ARViT.log": { 
+            "base_name": "2d_2x2",
             "E_exact": -4.958881,
             "err_rel": "0.0473",
             "fidelidad": "0.999297",
             "v_score": "0.000719"
         },
-        "resultado_2d_4x4.log": {  # <--- CAMBIA ESTO por tu nombre real
-            "output": "convergencia_2d_4x4.png",
+        "resultado_benchmark_2D4_ARViT.log": { 
+            "base_name": "2d_4x4",
             "E_exact": -25.898045,
             "err_rel": "0.1870",
             "fidelidad": "0.852547",
@@ -136,7 +142,18 @@ if __name__ == "__main__":
         ruta_completa = os.path.join(logs_dir, log_file)
         
         if os.path.exists(ruta_completa):
-            png_name = os.path.join(out_dir, config["output"])
-            plot_convergencia_2d(ruta_completa, png_name, config)
+            print(f"[*] Procesando: {log_file}...")
+            
+            # Gráfica de Energía
+            png_energia = os.path.join(out_dir, f"convergencia_energia_{config['base_name']}.png")
+            plot_convergencia_2d(ruta_completa, png_energia, config)
+            print(f"  [√] Guardada: {png_energia}")
+            
+            # Gráfica de Error Relativo
+            png_error = os.path.join(out_dir, f"error_relativo_{config['base_name']}.png")
+            plot_error_relativo_log(ruta_completa, png_error, config["E_exact"])
+            print(f"  [√] Guardada: {png_error}\n")
+            
         else:
-            print(f"  [AVISO] Archivo no encontrado: {log_file}. ¡Asegúrate de poner el nombre correcto en el diccionario!")
+            print(f"  [X] AVISO: Archivo no encontrado -> {log_file}")
+            print(f"      Asegúrate de que existe en la ruta de logs indicada arriba.\n")
