@@ -147,7 +147,7 @@ if __name__ == "__main__":
             "err_rel": "0.1870",
             "fidelidad": "0.852547",
             "v_score": "0.179719",
-            "max_iters": 450  # <--- Límite de iteraciones
+            "max_iters": 1000  # <--- Límite de iteraciones
         }
     }
 
