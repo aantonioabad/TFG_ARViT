@@ -14,7 +14,6 @@ def generar_todas_las_comparativas_top():
 
     print(f"[*] Carpeta raíz detectada para buscar logs: {carpeta_general}")
 
-    # 2. Diccionario con RUTAS y VALORES EXACTOS DE TU TABLA
     modelos = {
         "Jastrow": {
             "ruta": os.path.join(carpeta_general, "resultado_benchmark_02.log"), 
@@ -44,9 +43,6 @@ def generar_todas_las_comparativas_top():
 
     E_exacta = -12.32525024471575
     E_exacta_label = -12.3253 
-
-    # ==============================================================================
-    # AQUÍ VAN TUS ENFRENTAMIENTOS
     
     enfrentamientos = [
         {
