@@ -14,11 +14,9 @@ def get_Hamiltonian(N: int, J: float, alpha: float, hilbert: AbstractHilbert) ->
     """
     
     # 1. Definimos la intensidad del campo transversal (h_x)
-    # En el modelo estándar suele ser 1.0. Si quieres cambiarlo, pon h_x = lo que sea.
     h_x = 1.0
     
     # 2. Término de campo transversal: - h_x * sum(sigma_x)
-    # [FIX]: Usamos 'hilbert' (el argumento) para crear los operadores
     sx_list = [nk.operator.spin.sigmax(hilbert, i) for i in range(N)]
     term_field = -h_x * sum(sx_list)
     
@@ -26,12 +24,11 @@ def get_Hamiltonian(N: int, J: float, alpha: float, hilbert: AbstractHilbert) ->
     def interaction_term(i, j):
         # Distancia con condiciones de contorno periódicas
         d = min(abs(i - j), N - abs(i - j))
-        # Operador de interacción zz
+      
         op_zz = nk.operator.spin.sigmaz(hilbert, i) @ nk.operator.spin.sigmaz(hilbert, j)
         return (J / d**alpha) * op_zz
 
     # Sumamos todos los pares (i < j)
     term_interaction = sum([interaction_term(i, j) for i in range(N) for j in range(i + 1, N)])
     
-    # Hamiltoniano Total
     return term_field + term_interaction

@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 
 def extraer_datos_grafica(log_path):
-    """Extrae SOLO las energías del log. Las métricas se fuerzan desde la configuración."""
+   
     if not os.path.exists(log_path):
         return []
     with open(log_path, 'r') as f:
@@ -26,7 +26,7 @@ def extraer_datos_grafica(log_path):
             
     if not data_list: return []
     
-    # Buscar energías en el último objeto válido
+    
     data = data_list[-1]
     energy_dict = data.get("Energy", {})
     e_mean_list = energy_dict.get("Mean", energy_dict.get("mean", energy_dict.get("value", [])))
@@ -43,19 +43,18 @@ def plot_benchmark_training(log_path, benchmark_name, output_filename, exact_ene
         print(f"  [ERROR] No se pudo leer {log_path} o el archivo está vacío.")
         return
 
-    # --- MODULAR ITERACIONES A PLOTEAR ---
-    # Recorta la lista de energías hasta 'max_iters' si se ha especificado un límite
+   
     if max_iters is not None:
         energy_mean = energy_mean[:max_iters]
         
     iters = range(len(energy_mean))
     
-    # Construir etiqueta de la leyenda inyectando los datos fijos de la tabla
+    
     label_vmc = (f"Energía VMC\n"
                  f"Error Rel: {err_rel_str}%\n"
                  f"Fidelidad: {fidelidad_str}")
 
-    # ESTÉTICA DE ARTÍCULO CIENTÍFICO (Modo póster gigante)
+   
     with plt.rc_context({
         'font.family': 'serif',
         'font.size': 22,
@@ -64,24 +63,21 @@ def plot_benchmark_training(log_path, benchmark_name, output_filename, exact_ene
     }):
         fig, ax = plt.subplots(figsize=(10, 6), dpi=150)
 
-        color_data = "#5499C7"    # Azul acero pastel
-        color_exact = "#F1948A"   # Salmón/Rojo pastel
+        color_data = "#5499C7"   
+        color_exact = "#F1948A"   
 
-        # 1. Datos crudos con la nueva leyenda de métricas forzadas
         ax.plot(iters, energy_mean, color=color_data, linewidth=2.5, label=label_vmc)
         
-        # 2. Línea exacta gruesa
+        
         ax.axhline(exact_energy, color=color_exact, linestyle="--", linewidth=2.5, 
                     label=f"Energía Exacta ({exact_energy:.4f})")
         
-        # ETIQUETAS DE EJE GIGANTES
+        
         ax.set_xlabel("Épocas (Iteraciones)", fontsize=24, fontweight='bold')
         ax.set_ylabel(r"Energía $\langle H \rangle$", fontsize=24, fontweight='bold')
-        
-        # NÚMEROS DE LOS EJES ENORMES
+      
         ax.tick_params(axis='both', which='major', labelsize=20)
-        
-        # Ajustar el límite X según si hemos modulado las iteraciones
+       
         if max_iters is not None:
             ax.set_xlim(0, max_iters)
         else:
@@ -102,16 +98,11 @@ def plot_benchmark_training(log_path, benchmark_name, output_filename, exact_ene
 if __name__ == "__main__":
     print("\n--- GENERANDO GRÁFICAS INDIVIDUALES DE ENTRENAMIENTO ---\n")
     
-    # Directorio base (Local en Colab)
+   
     directorio_base = "/content/TFG_ARViT/"
     
-    # Energía exacta de referencia
     E_EXACTA = -12.32525024471575 
     
-    # ==============================================================================
-    # DICCIONARIO DE DATOS FORZADOS (Extraídos directamente de la Tabla 2)
-    # Aquí puedes ajustar el "max_iters" para cada modelo como mejor te convenga
-    # ==============================================================================
     logs_a_procesar = {
         "resultado_benchmark_02.log": {
             "title": "02 - Jastrow (Mean Field) + Metropolis",
@@ -153,7 +144,7 @@ if __name__ == "__main__":
                 exact_energy=E_EXACTA,
                 err_rel_str=config["err_rel"],
                 fidelidad_str=config["fidelidad"],
-                max_iters=config["max_iters"] # <-- Parámetro modular aplicado
+                max_iters=config["max_iters"] 
             )
         else:
             print(f"  [AVISO] Archivo no encontrado: {log_file}. Saltando....")

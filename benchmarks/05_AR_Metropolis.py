@@ -117,7 +117,5 @@ def run_arnn_metropolis():
         filename="autocorr_05_AR_Metropolis.2.png" 
     ) 
     
-
-
 if __name__ == "__main__":
     run_arnn_metropolis()

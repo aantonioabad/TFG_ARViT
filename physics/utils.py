@@ -123,18 +123,15 @@ def acf_helper(x):
 
 def plot_markov_autocorrelation(vstate, H, benchmark_name, max_lag=100, filename="autocorr.png"):
     """
-    Calcula y grafica la autocorrelación de la cadena de Markov (Energía Local)
-    utilizando un formato de texto gigante y eliminando el título de la gráfica.
+    Calcula y grafica la autocorrelación de la cadena de Markov generada por el estado variacional `vstate` con respecto al Hamiltoniano `H`.
     """
-    # 1. Extraer las energías locales de la cadena de Markov
-    # Asumimos que hay 1 sola cadena (n_chains=1), por lo que tomamos el índice [0]
+   
     E_loc = np.array(vstate.local_estimators(H).real)[0]
     
-    # 2. Cálculo manual de la autocorrelación discreta C(t)
+   
     E_mean = np.mean(E_loc)
     E_var = np.var(E_loc)
     
-    # Asegurarnos de no pedir más lag que el tamaño de la cadena
     max_lag = min(max_lag, len(E_loc) - 1)
     lags = np.arange(max_lag)
     autocorr = []
@@ -144,28 +141,25 @@ def plot_markov_autocorrelation(vstate, H, benchmark_name, max_lag=100, filename
             autocorr.append(1.0)
         else:
             cov_t = np.mean((E_loc[:-t] - E_mean) * (E_loc[t:] - E_mean))
-            # Normalizamos con la varianza para que empiece en 1
+            
             autocorr.append(cov_t / E_var)
             
-    # 3. Generación de la gráfica en "Modo Póster"
+   
     with plt.rc_context({'font.family': 'serif', 'font.size': 22, 'axes.spines.top': True, 'axes.spines.right': True}):
         plt.figure(figsize=(10, 6), dpi=150)
         
-        # Línea de la autocorrelación (Gruesa y con puntos grandes)
+       
         plt.plot(lags, autocorr, marker='o', linestyle='-', color='black', 
                  linewidth=2.5, markersize=8, alpha=0.85)
         
-        # Línea base en y=0
+      
         plt.axhline(0, color='gray', linestyle='--', linewidth=2.0, alpha=0.7)
-        
-        # ETIQUETAS DE EJE GIGANTES Y EN NEGRITA
+     
         plt.xlabel("Distancia en la cadena", fontsize=24, fontweight='bold')
         plt.ylabel(r"Autocorrelación $C(t)$", fontsize=24, fontweight='bold')
-        
-        # NÚMEROS DE LOS EJES ENORMES
+    
         plt.tick_params(axis='both', which='major', labelsize=20)
         
-        # Cuadrícula para facilitar la lectura visual
         plt.grid(True, linestyle='-', color='#E5E8E8', linewidth=1.0)
         
         plt.tight_layout()

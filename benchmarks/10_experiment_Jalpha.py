@@ -8,7 +8,6 @@ import netket as nk
 import optax
 import scipy.sparse.linalg
 
-# Ajuste de rutas para tus módulos
 current_dir = os.path.dirname(os.path.abspath(__file__)) if '__file__' in globals() else os.getcwd()
 parent_dir = os.path.dirname(current_dir)
 sys.path.append(parent_dir)
@@ -22,7 +21,6 @@ def run_direct_sampling_6_points(N=10):
     drive_dir = "/content/drive/MyDrive/TFG_ARViT/Fase_ J_alpha/"
     os.makedirs(drive_dir, exist_ok=True)
 
-    # Solo los 6 puntos exactos para la comparativa
     experimentos = [
         (6.0, 7.0),
         (6.0, -4.0),
@@ -67,38 +65,34 @@ def run_direct_sampling_6_points(N=10):
         # Muestreo Directo
         sampler = nk.sampler.ARDirectSampler(hi)
         
-        # Estado variacional
+        
         vstate = nk.vqs.MCState(sampler, model, n_samples=2048, seed=42)
         
         optimizer = optax.adam(learning_rate=0.001)
         gs = nk.driver.VMC_SR(H, optimizer, variational_state=vstate, diag_shift=0.1)
         keeper = BestIterKeeper(Hamiltonian=H, N=N, baseline=1e-6)
 
-        # 3. Nombres de archivos (guardamos como 'resultado_direct_...' para no pisar los anteriores)
+        
         base_log_name = os.path.join(drive_dir, f"resultado_direct_alpha{alpha}_J{J}")
         log = nk.logging.JsonLog(base_log_name, save_params=False)
 
-        # 4. Ejecución del Entrenamiento
+        
         print(f"  [+] Entrenando 500 épocas con Direct Sampling...")
         start_time = time.time()
         gs.run(n_iter=500, out=log, show_progress=True, callback=keeper.update)
         jax.block_until_ready(vstate.variables)
         
-        # 5. Cargar mejores parámetros para la Fidelidad
         vstate.parameters = keeper.best_state.parameters
         
-        # 6. 🔥 CALCULAR FIDELIDAD CUÁNTICA EXACTA AL VUELO 🔥
-        psi_exact = evecs[:, 0]  # Estado fundamental exacto de ED
-        psi_arvit = vstate.to_array()  # Estado completo de la red neuronal
-        psi_arvit = psi_arvit / jnp.linalg.norm(psi_arvit)  # Normalización por seguridad
+        psi_exact = evecs[:, 0]  
+        psi_arvit = vstate.to_array()  
+        psi_arvit = psi_arvit / jnp.linalg.norm(psi_arvit)  
         
         fidelidad = float(jnp.abs(jnp.vdot(psi_arvit, psi_exact))**2)
         print(f"  [+] Fidelidad Cuántica Calculada: {fidelidad:.6f}")
         
-        # Forzamos el cierre del logger para que escriba el archivo
         del log 
         
-        # Inyectamos la fidelidad en el log generado
         log_path = base_log_name + ".log"
         if os.path.exists(log_path):
             with open(log_path, 'r') as f:

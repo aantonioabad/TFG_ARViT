@@ -63,20 +63,20 @@ def generar_todas_las_comparativas_top():
         {
             "pareja": ["ViT", "ARViT"],
             "archivo": "comparativa_04_vs_06B.png",
-            "x_max": 400  # 900 épocas para ver la evolución completa de todos los modelos
+            "x_max": 400  
         }
         
     ]
     # ==============================================================================
 
     print("\n" + "="*80)
-    print("📊 GENERANDO GRÁFICAS (TAMAÑO DE TEXTO EXTREMO) 📊")
+    print("📊 GENERANDO GRÁFICAS📊")
     print("="*80 + "\n")
 
     for combate in enfrentamientos:
         print(f"[*] Procesando: {combate['archivo']}...")
         
-        # Aumentamos el tamaño base de la fuente a 22
+    
         with plt.rc_context({'font.family': 'serif', 'font.size': 22, 'axes.spines.top': True, 'axes.spines.right': True}):
             fig, ax = plt.subplots(figsize=(10, 6), dpi=150)
             
@@ -105,11 +105,11 @@ def generar_todas_las_comparativas_top():
             # Línea de energía exacta
             ax.axhline(E_exacta, color="black", linestyle="--", linewidth=2.5, label=f"Energía Exacta ({E_exacta_label:.4f})")
 
-            # ETIQUETAS DE EJE GIGANTES (Tamaño 24)
+           
             ax.set_xlabel("Épocas", fontsize=24, fontweight='bold')
             ax.set_ylabel(r"Energía, $\langle H \rangle$", fontsize=24, fontweight='bold')
             
-            # NÚMEROS DE LOS EJES ENORMES (Tamaño 20)
+       
             ax.tick_params(axis='both', which='major', labelsize=20)
             
             ax.set_xlim(0, combate['x_max'])

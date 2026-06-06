@@ -29,7 +29,7 @@ def extraer_energias(log_path):
     data = data_list[-1]
     energy_dict = data.get("Energy", {})
     e_mean_list = energy_dict.get("Mean", energy_dict.get("mean", energy_dict.get("value", [])))
-    # Extraemos las energías con toda la precisión de los números flotantes de Python
+   
     energies = [e.get("real", e.get("Mean", e.get("mean", 0.0))) if isinstance(e, dict) else (e.real if isinstance(e, complex) else float(e)) for e in e_mean_list]
                 
     return energies
@@ -45,18 +45,16 @@ def plot_convergencia(log_path, output_filename, exact_energy, fidelidad_str):
 
     iters = range(len(energy_mean))
     
-    # --- CÁLCULO DINÁMICO DEL ERROR RELATIVO CON ALTA PRECISIÓN ---
     best_energy = min(energy_mean)
     
-    # Error relativo = |(E_calc - E_exact) / E_exact| * 10^4
+  
     err_rel_calculado = abs((best_energy - exact_energy) / exact_energy) * 10000
     
-    # Construir etiqueta de la leyenda
+   
     label_vmc = (f"Energía VMC\n"
                  f"Error Rel: {err_rel_calculado:.2f}" + r" $\times 10^{-4}$" + "\n"
                  f"Fidelidad: {fidelidad_str}")
 
-    # ESTÉTICA DE ARTÍCULO CIENTÍFICO (Modo póster gigante)
     with plt.rc_context({
         'font.family': 'serif',
         'font.size': 22,
@@ -68,14 +66,13 @@ def plot_convergencia(log_path, output_filename, exact_energy, fidelidad_str):
         color_data = "#5499C7"    
         color_exact = "#F1948A"   
 
-        # 1. Datos crudos
+   
         ax.plot(iters, energy_mean, color=color_data, linewidth=2.5, label=label_vmc)
-        
-        # 2. Línea exacta (se muestra con 4 decimales en la leyenda por estética, pero usa la precisión completa en el gráfico)
+
         ax.axhline(exact_energy, color=color_exact, linestyle="--", linewidth=2.5, 
                     label=f"Energía Exacta ({exact_energy:.4f})")
         
-        # ETIQUETAS Y EJES GIGANTES (Sin título)
+  
         ax.set_xlabel("Épocas (Iteraciones)", fontsize=24, fontweight='bold')
         ax.set_ylabel(r"Energía $\langle H \rangle$", fontsize=24, fontweight='bold')
         
@@ -85,7 +82,6 @@ def plot_convergencia(log_path, output_filename, exact_energy, fidelidad_str):
         ax.grid(True, linestyle='-', color='#E5E8E8', linewidth=1.0)
         ax.yaxis.set_major_locator(MaxNLocator(nbins=12))
 
-        # Leyenda ajustada
         ax.legend(loc="upper right", frameon=True, fontsize=20, labelspacing=1.2, edgecolor='#BDC3C7', facecolor='#FDFEFE', framealpha=0.9)
         
         plt.tight_layout()
@@ -112,9 +108,8 @@ if __name__ == "__main__":
     print(f"[*] Buscando logs en: {logs_dir}")
     print(f"[*] Guardando gráficas en: {out_dir}\n")
 
-    # 2. DICCIONARIO DE EXPERIMENTOS (Energías exactas con 6 decimales extraídas de la consola)
     experimentos = [
-        # --- FM (J < 0) ---
+       
         {"log": "resultado_direct_alpha1.0_J-2.0.log", "E_exact": -44.239541, "fidelidad": "0.993972"},
         {"log": "resultado_metropolis_alpha1.0_J-2.0.log", "E_exact": -44.239541, "fidelidad": "0.636810"},
         
@@ -124,7 +119,7 @@ if __name__ == "__main__":
         {"log": "resultado_direct_alpha6.0_J-4.0.log", "E_exact": -41.307541, "fidelidad": "0.999374"},
         {"log": "resultado_metropolis_alpha6.0_J-4.0.log", "E_exact": -41.307541, "fidelidad": "0.584448"},
         
-        # --- AFM (J > 0) ---
+       
         {"log": "resultado_direct_alpha1.0_J7.0.log", "E_exact": -48.362404, "fidelidad": "0.963167"},
         {"log": "resultado_metropolis_alpha1.0_J7.0.log", "E_exact": -48.362404, "fidelidad": "0.814542"},
         

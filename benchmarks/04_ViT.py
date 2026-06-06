@@ -17,7 +17,7 @@ os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 from physics.hamiltonian import get_Hamiltonian
 from physics.utils import BestIterKeeper
 from physics.utils import plot_markov_autocorrelation
-from models.vit_standard import BatchedSpinViT 
+from models.ViT import BatchedSpinViT 
 
 def run_vit_metropolis():
     print(">>> BENCHMARK 04: ViT ESTÁNDAR + METROPOLIS SAMPLING")
@@ -80,9 +80,6 @@ def run_vit_metropolis():
     psi_vmc = vstate.to_array(normalize=True)
     overlap = float(jnp.abs(jnp.vdot(psi_exact, psi_vmc))**2)
 
-    # =================================================================
-    # NUEVO: CÁLCULO DEL TIEMPO DE DECAIMIENTO DISCRETO AL 10% (C_t <= 0.1)
-    # =================================================================
     print("Calculando el paso exacto de caída al 10%...")
     
     E_loc = np.array(vstate.local_estimators(H).real)[0]
@@ -100,7 +97,7 @@ def run_vit_metropolis():
         if c_t <= 0.1:
             t_10_percent = t
             break
-    # =================================================================
+    
 
     print("\n>>> RESULTADOS FINALES:")
     print(f"Energia VMC       : {E_mean:.6f}")

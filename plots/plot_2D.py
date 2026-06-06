@@ -34,13 +34,13 @@ def extraer_energias(log_path):
     return energies
 
 # ==============================================================================
-# GRÁFICA 1: CONVERGENCIA DE ENERGÍA (Azul)
+# GRÁFICA 1: CONVERGENCIA DE ENERGÍA
 # ==============================================================================
 def plot_convergencia_2d(log_path, output_filename, config):
     energy_mean = extraer_energias(log_path)
     if not energy_mean: return
 
-    # --- MODULAR ITERACIONES ---
+  
     max_iters = config.get("max_iters", None)
     if max_iters is not None:
         energy_mean = energy_mean[:max_iters]
@@ -72,13 +72,12 @@ def plot_convergencia_2d(log_path, output_filename, config):
         plt.close()
 
 # ==============================================================================
-# GRÁFICA 2: ERROR RELATIVO LOGARÍTMICO (Naranja)
+# GRÁFICA 2: ERROR RELATIVO LOGARÍTMICO 
 # ==============================================================================
 def plot_error_relativo_log(log_path, output_filename, config):
     energy_mean = extraer_energias(log_path)
     if not energy_mean: return
 
-    # --- MODULAR ITERACIONES ---
     max_iters = config.get("max_iters", None)
     if max_iters is not None:
         energy_mean = energy_mean[:max_iters]
@@ -86,7 +85,6 @@ def plot_error_relativo_log(log_path, output_filename, config):
     iters = range(len(energy_mean))
     exact_energy = config["E_exact"]
     
-    # Cálculo del ERROR RELATIVO en porcentaje (%)
     error_rel = [abs((e - exact_energy) / exact_energy) * 100 for e in energy_mean]
 
     with plt.rc_context({'font.family': 'serif', 'font.size': 22, 'axes.spines.top': True, 'axes.spines.right': True}):
@@ -139,7 +137,7 @@ if __name__ == "__main__":
             "err_rel": "0.0473",
             "fidelidad": "0.999297",
             "v_score": "0.000719",
-            "max_iters": 1000  # <--- Límite de iteraciones
+            "max_iters": 1000  
         },
         "resultado_benchmark_2D4_ARViT.log": {  
             "base_name": "2d_4x4",
@@ -147,7 +145,7 @@ if __name__ == "__main__":
             "err_rel": "0.1870",
             "fidelidad": "0.852547",
             "v_score": "0.179719",
-            "max_iters": 450  # <--- Límite de iteraciones
+            "max_iters": 450  
         }
     }
 
@@ -157,12 +155,11 @@ if __name__ == "__main__":
         if os.path.exists(ruta_completa):
             print(f"[*] Procesando: {log_file} (Límite: {config.get('max_iters', 'Todos los')} pasos)...")
             
-            # Gráfica de Energía
+           
             png_energia = os.path.join(out_dir, f"convergencia_energia_{config['base_name']}.png")
             plot_convergencia_2d(ruta_completa, png_energia, config)
             print(f"  [√] Guardada: {png_energia}")
             
-            # Gráfica de Error Relativo
             png_error = os.path.join(out_dir, f"error_relativo_{config['base_name']}.png")
             plot_error_relativo_log(ruta_completa, png_error, config)
             print(f"  [√] Guardada: {png_error}\n")

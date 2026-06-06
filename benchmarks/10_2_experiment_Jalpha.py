@@ -10,7 +10,6 @@ import optax
 import scipy.sparse.linalg
 import matplotlib.pyplot as plt
 
-# Ajuste de rutas para tus módulos
 current_dir = os.path.dirname(os.path.abspath(__file__)) if '__file__' in globals() else os.getcwd()
 parent_dir = os.path.dirname(current_dir)
 if parent_dir not in sys.path:
@@ -18,13 +17,12 @@ if parent_dir not in sys.path:
 
 from physics.hamiltonian import get_Hamiltonian
 from models.vitB import ARSpinViT_Causal
-from physics.utils import BestIterKeeper, plot_markov_autocorrelation # <-- Añadida la importación
+from physics.utils import BestIterKeeper, plot_markov_autocorrelation 
 
 # ==============================================================================
 # SCRIPT PRINCIPAL
 # ==============================================================================
 def run_metropolis_sampling_6_points(N=10):
-    # Ruta en el repositorio clonado de Colab
     base_dir = "/content/TFG_ARViT"
     os.makedirs(base_dir, exist_ok=True)
 
@@ -67,14 +65,12 @@ def run_metropolis_sampling_6_points(N=10):
             n_ffn_layers=1
         )
         
-        # Muestreo Metropolis Local
         sampler = nk.sampler.MetropolisLocal(
             hi,
             n_chains=1,    # Número de exploradores en paralelo
             sweep_size=1   # Muestras que se dejan pasar entre extracciones
         )
         
-        # Estado variacional
         vstate = nk.vqs.MCState(sampler, model, n_samples=2048, n_discard_per_chain=100, seed=42)
         
         optimizer = optax.adam(learning_rate=0.001)
@@ -86,7 +82,6 @@ def run_metropolis_sampling_6_points(N=10):
 
         keeper = BestIterKeeper(Hamiltonian=H, N=N, baseline=1e-6)
 
-        # 3. Nombres de archivos
         base_log_name = os.path.join(base_dir, f"resultado_metropolis_alpha{alpha}_J{J}")
         log = nk.logging.JsonLog(base_log_name, save_params=False)
 
@@ -97,13 +92,11 @@ def run_metropolis_sampling_6_points(N=10):
         jax.block_until_ready(vstate.variables)
         end_time = time.time()
         
-        del log # Cierre forzado del logger
-        
-        # 5. CARGAR MEJORES PARÁMETROS Y CALCULAR ENERGÍA
+        del log 
+       
         vstate.parameters = keeper.best_state.parameters
         E_calc = float(vstate.expect(H).mean.real)
 
-        # 6. CÁLCULO DE LA DECORRELACIÓN DISCRETA AL 10%
         print("  [+] Calculando el paso exacto de caída al 10% (C_t <= 0.1)...")
         E_loc = np.array(vstate.local_estimators(H).real)[0]
         
@@ -123,7 +116,6 @@ def run_metropolis_sampling_6_points(N=10):
                 
         print(f"  [+] Pasos hasta decorrelación del 10%: {t_10_percent}")
 
-        # 7. GENERACIÓN DE LA GRÁFICA DE AUTOCORRELACIÓN
         benchmark_title = f"ARViT Metropolis (J={J}, alpha={alpha})"
         plot_filename = os.path.join(base_dir, f"autocorr_metropolis_alpha{alpha}_J{J}.png")
         
@@ -136,7 +128,6 @@ def run_metropolis_sampling_6_points(N=10):
         )
         print(f"  [√] Gráfica de autocorrelación guardada en: {os.path.basename(plot_filename)}")
 
-        # 8. CALCULAR FIDELIDAD CUÁNTICA EXACTA AL VUELO
         psi_exact = evecs[:, 0]
         psi_arvit = vstate.to_array()
         psi_arvit = psi_arvit / jnp.linalg.norm(psi_arvit)
@@ -154,8 +145,7 @@ def run_metropolis_sampling_6_points(N=10):
             'Error_Rel': err_rel,
             'Tau_10': t_10_percent
         })
-        
-        # Intentar inyectar en el JSON
+    
         log_path = base_log_name + ".log"
         if os.path.exists(log_path):
             try:
@@ -172,7 +162,7 @@ def run_metropolis_sampling_6_points(N=10):
         print("-" * 60)
 
     # =====================================================================
-    # TABLA RESUMEN FINAL POR CONSOLA
+    # TABLA RESUMEN FINAL
     # =====================================================================
     print(f"\n{'='*95}")
     print("📊 RESUMEN FINAL DEL BENCHMARK (METROPOLIS MCMC)")

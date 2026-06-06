@@ -14,7 +14,7 @@ sys.path.append(parent_dir)
 os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 
 from physics.hamiltonian import get_Hamiltonian
-from models.vitB import ARSpinViT_Causal
+from models.ARViT import ARSpinViT_Causal
 from physics.utils import BestIterKeeper 
 from physics.utils import plot_markov_autocorrelation
 
@@ -98,8 +98,6 @@ def run_arvit_direct():
     max_lag=40, 
     filename="autocorr_06_ARViTDirect.png" 
     )
-
- 
 
 if __name__ == "__main__":
     run_arvit_direct()

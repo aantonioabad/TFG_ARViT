@@ -14,7 +14,7 @@ base_tfg_dir = "/content/TFG_ARViT"
 if base_tfg_dir not in sys.path:
     sys.path.append(base_tfg_dir)
 
-from models.vitB import ARSpinViT_Causal
+from models.ARViT import ARSpinViT_Causal
 from physics.utils import BestIterKeeper
 
 
@@ -131,7 +131,6 @@ def run_arvit_direct_2d():
     else:
         print(f"[!] Malla demasiado grande (N={N}). Se omite la Diagonalización Exacta (ED).")
 
-    # --- IMPRESIÓN DE RESULTADOS ---
     print("\n=========================================================")
     print(" RESULTADOS FINALES 2D (MEJOR ÉPOCA RESTAURADA)")
     print("=========================================================")
@@ -145,7 +144,6 @@ def run_arvit_direct_2d():
     
     print(f"Tiempo de Ejecución     : {exec_time:.2f} segundos")
     print("=========================================================\n")
-    
     
     print("[*] Generando gráficas profesionales de entrenamiento...")
     energies = extraer_energias_log(log_base + ".log")

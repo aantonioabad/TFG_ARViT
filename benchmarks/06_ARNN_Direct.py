@@ -92,10 +92,5 @@ def run_ar_direct():
     filename="autocorr_06_ARNNDirect.png" 
     )
     
-    
-
- 
-
-
 if __name__ == "__main__":
     run_ar_direct()
