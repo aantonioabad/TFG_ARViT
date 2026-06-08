@@ -115,8 +115,14 @@ def analizar_logs(directorio="."):
 
 # Ejecutar y mostrar
 if __name__ == "__main__":
-    df_final = analizar_logs(".") # Cambia "." por la ruta de tu carpeta si no estás en ella
-    print(df_final.to_string(index=False))
+    # Usamos la ruta absoluta exacta donde están los logs
+    ruta_logs = "/content/TFG_ARViT/plots" 
     
-    # Opcional: Guardar a CSV
-    # df_final.to_csv("resultados_metricas.csv", index=False)
+    df_final = analizar_logs(ruta_logs)
+    
+    # Añadimos un pequeño control de seguridad por si acaso
+    if df_final.empty:
+        print(f"⚠️ No se ha encontrado ningún archivo .log válido en: {ruta_logs}")
+        print("Asegúrate de que los archivos se copiaron correctamente a esa carpeta.")
+    else:
+        print(df_final.to_string(index=False))
