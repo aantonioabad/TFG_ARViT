@@ -95,7 +95,7 @@ def run_metropolis_sampling_6_points(N=10):
         del log 
        
         vstate.parameters = keeper.best_state.parameters
-        E_calc = float(vstate.expect(H).mean.real)
+        
 
         print("  [+] Calculando el paso exacto de caída al 10% (C_t <= 0.1)...")
         E_loc = np.array(vstate.local_estimators(H).real)[0]
@@ -118,7 +118,6 @@ def run_metropolis_sampling_6_points(N=10):
 
         benchmark_title = f"ARViT Metropolis (J={J}, alpha={alpha})"
         plot_filename = os.path.join(base_dir, f"autocorr_metropolis_alpha{alpha}_J{J}.png")
-        
         plot_markov_autocorrelation(
             vstate=vstate, 
             H=H, 
@@ -127,31 +126,52 @@ def run_metropolis_sampling_6_points(N=10):
             filename=plot_filename 
         )
         print(f"  [√] Gráfica de autocorrelación guardada en: {os.path.basename(plot_filename)}")
+        print("Calculando métricas finales...")
+        time_499 = time.time() - start_time
+        exec_time_500 = time_499 * (500 / 499)
 
+        print("Calculando métricas finales...")
+        E_stat = vstate.expect(H)
+        E_mean = E_stat.mean.real
+        E_var = E_stat.variance.real 
+        pearson_dev = jnp.sqrt(E_var) / abs(E_mean)
+
+        H_sparse = H.to_sparse()
+        evals, evecs = scipy.sparse.linalg.eigsh(H_sparse, k=1, which="SA")
         psi_exact = evecs[:, 0]
-        psi_arvit = vstate.to_array()
-        psi_arvit = psi_arvit / jnp.linalg.norm(psi_arvit)
-        
-        fidelidad = float(jnp.abs(jnp.vdot(psi_arvit, psi_exact))**2)
-        print(f"  [+] Fidelidad Cuántica Calculada: {fidelidad:.6f}")
+        E_exact = evals[0]
 
-        err_rel = abs((E_calc - E_exact) / E_exact)
+        psi_vmc = vstate.to_array(normalize=True)
+        overlap = float(jnp.abs(jnp.vdot(psi_exact, psi_vmc))**2)
+        
+
+        print("\n>>> RESULTADOS FINALES:")
+        print(f"Energia VMC       : {E_mean:.6f}")
+        print(f"Energia Exacta    : {E_exact:.6f}")
+        print(f"Error Relativo    : {abs((E_mean - E_exact)/E_exact):.8%}")
+        print(f"Desviacion Pearson: {pearson_dev:.6f}")
+        print(f"Fidelidad         : {overlap:.6f}")
+        print(f"      - Tiempo:    {exec_time_500:.1f} s")
+
+        
+
+
+
         summary_table.append({
             'J': J,
             'alpha': alpha,
             'E_exact': E_exact,
-            'E_calc': E_calc,
-            'Fidelidad': fidelidad,
-            'Error_Rel': err_rel,
+            'E_calc': E_mean,
+            'Fidelidad': overlap,
+            'Error_Rel': -abs((E_mean - E_exact)/E_exact),
             'Tau_10': t_10_percent
         })
-    
         log_path = base_log_name + ".log"
         if os.path.exists(log_path):
             try:
                 with open(log_path, 'r') as f:
                     log_data = json.load(f)
-                log_data['Best_Fidelity'] = fidelidad
+                log_data['Best_Fidelity'] = overlap
                 log_data['Best_Tau_10_percent'] = t_10_percent
                 with open(log_path, 'w') as f:
                     json.dump(log_data, f, indent=4)
