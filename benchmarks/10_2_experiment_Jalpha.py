@@ -33,9 +33,9 @@ def run_direct_sampling_6_points(N=10):
     ]
 
     print(f"\n{'='*80}")
-    print(f"🚀 INICIANDO BENCHMARK: DIRECT SAMPLING + MÉTRICAS + AUTOCORRELACIÓN")
+    print(f"🚀 INICIANDO BENCHMARK: Metropolis SAMPLING + MÉTRICAS + AUTOCORRELACIÓN")
     print(f"💾 Destino: {drive_dir}")
-    print(f"🎲 Sampler: ARDirectSampler (Muestreo Directo/Autorregresivo)")
+
     print(f"{'='*80}\n")
 
     for alpha, J in experimentos:
@@ -58,8 +58,12 @@ def run_direct_sampling_6_points(N=10):
             n_ffn_layers=1
         )
         
-        # Muestreo Directo
-        sampler = nk.sampler.ARDirectSampler(hi)
+        
+        sampler = nk.sampler.MetropolisLocal(
+        hi,
+        n_chains=1, # Número de exploradores en paralelo
+        sweep_size=1   # Muestras que se dejan pasar entre extracciones
+    )
         vstate = nk.vqs.MCState(sampler, model, n_samples=2048, seed=42)
         optimizer = optax.adam(learning_rate=0.001)
         gs = nk.driver.VMC_SR(H, optimizer, variational_state=vstate, diag_shift=0.1)
