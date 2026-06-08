@@ -102,7 +102,7 @@ def run_direct_sampling_6_points(N=10):
         print("\n>>> RESULTADOS FINALES:")
         print(f"Energia VMC       : {E_mean:.6f}")
         print(f"Energia Exacta    : {E_exact:.6f}")
-        print(f"Error Relativo    : {abs((E_mean - E_exact)/E_exact):.2%}")
+        print(f"Error Relativo    : {abs((E_mean - E_exact)/E_exact):.8%}")
         print(f"Desviacion Pearson: {pearson_dev:.6f}")
         print(f"Fidelidad         : {overlap:.6f}")
         print(f"      - Tiempo:    {exec_time_500:.1f} s")
