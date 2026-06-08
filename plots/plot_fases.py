@@ -34,7 +34,7 @@ def extraer_energias(log_path):
                 
     return energies
 
-def plot_convergencia(log_path, output_filename, exact_energy, fidelidad_str):
+def plot_convergencia(log_path, output_filename, exact_energy, fidelidad_str, err_rel_str):
     print(f"Procesando: {os.path.basename(log_path)}...")
     
     energy_mean = extraer_energias(log_path)
@@ -47,12 +47,12 @@ def plot_convergencia(log_path, output_filename, exact_energy, fidelidad_str):
     
     best_energy = min(energy_mean)
     
-  
+    # Mantenemos el cálculo interno solo para imprimirlo por consola y auditar
     err_rel_calculado = abs((best_energy - exact_energy) / exact_energy) * 10000
     
-   
+    # Modificamos la leyenda para forzar el string exacto de la tabla en formato %
     label_vmc = (f"Energía VMC\n"
-                 f"Error Rel: {err_rel_calculado:.2f}" + r" $\times 10^{-4}$" + "\n"
+                 f"Error Rel: {err_rel_str}%\n"
                  f"Fidelidad: {fidelidad_str}")
 
     with plt.rc_context({
@@ -66,13 +66,11 @@ def plot_convergencia(log_path, output_filename, exact_energy, fidelidad_str):
         color_data = "#5499C7"    
         color_exact = "#F1948A"   
 
-   
         ax.plot(iters, energy_mean, color=color_data, linewidth=2.5, label=label_vmc)
 
         ax.axhline(exact_energy, color=color_exact, linestyle="--", linewidth=2.5, 
                     label=f"Energía Exacta ({exact_energy:.4f})")
         
-  
         ax.set_xlabel("Épocas (Iteraciones)", fontsize=24, fontweight='bold')
         ax.set_ylabel(r"Energía $\langle H \rangle$", fontsize=24, fontweight='bold')
         
@@ -89,17 +87,19 @@ def plot_convergencia(log_path, output_filename, exact_energy, fidelidad_str):
         plt.close()
         print(f"  [ÉXITO] Guardada como '{os.path.basename(output_filename)}'")
         print(f"          -> Energía mínima: {best_energy:.8f}")
-        print(f"          -> Error Relativo Calculado: {err_rel_calculado:.2f} x 10^-4\n")
+        print(f"          -> Error Relativo Calculado (auditoría): {err_rel_calculado:.2f} x 10^-4\n")
 
 if __name__ == "__main__":
     print("\n--- GENERANDO GRÁFICAS Y AUDITANDO ERROR RELATIVO ---\n")
     
-    current_dir = os.path.dirname(os.path.abspath(__file__)) if '__file__' in globals() else os.getcwd()
+    # Actualizado a la ruta exacta de Google Drive de tu Colab
+    drive_dir = "/content/drive/MyDrive/TFG_ARViT/Fase_ J_alpha"
     
-    if os.path.exists("/content/TFG_ARViT"):
-        logs_dir = "/content/TFG_ARViT"
-        out_dir = "/content/TFG_ARViT/plots"
+    if os.path.exists(drive_dir):
+        logs_dir = drive_dir
+        out_dir = drive_dir
     else:
+        current_dir = os.path.dirname(os.path.abspath(__file__)) if '__file__' in globals() else os.getcwd()
         logs_dir = os.path.abspath(os.path.join(current_dir, "..", "TFG_ARViT"))
         out_dir = current_dir
 
@@ -108,26 +108,25 @@ if __name__ == "__main__":
     print(f"[*] Buscando logs en: {logs_dir}")
     print(f"[*] Guardando gráficas en: {out_dir}\n")
 
+    # Experimentos actualizados con los valores EXACTOS de la tabla definitiva
     experimentos = [
-       
-        {"log": "resultado_direct_alpha1.0_J-2.0.log", "E_exact": -44.239541, "fidelidad": "0.993972"},
-        {"log": "resultado_metropolis_alpha1.0_J-2.0.log", "E_exact": -44.239541, "fidelidad": "0.636810"},
+        {"log": "resultado_direct_alpha1.0_J-2.0.log", "E_exact": -44.239541, "fidelidad": "0.993972", "err_rel": "0.04"},
+        {"log": "resultado_metropolis_alpha1.0_J-2.0.log", "E_exact": -44.239541, "fidelidad": "0.998112", "err_rel": "0.12"},
         
-        {"log": "resultado_direct_alpha2.5_J-4.0.log", "E_exact": -51.733292, "fidelidad": "0.993284"},
-        {"log": "resultado_metropolis_alpha2.5_J-4.0.log", "E_exact": -51.733292, "fidelidad": "0.693280"},
+        {"log": "resultado_direct_alpha2.5_J-4.0.log", "E_exact": -51.733292, "fidelidad": "0.993284", "err_rel": "0.05"},
+        {"log": "resultado_metropolis_alpha2.5_J-4.0.log", "E_exact": -51.733292, "fidelidad": "0.569480", "err_rel": "0.10"},
         
-        {"log": "resultado_direct_alpha6.0_J-4.0.log", "E_exact": -41.307541, "fidelidad": "0.999374"},
-        {"log": "resultado_metropolis_alpha6.0_J-4.0.log", "E_exact": -41.307541, "fidelidad": "0.584448"},
+        {"log": "resultado_direct_alpha6.0_J-4.0.log", "E_exact": -41.307541, "fidelidad": "0.999374", "err_rel": "0.00"},
+        {"log": "resultado_metropolis_alpha6.0_J-4.0.log", "E_exact": -41.307541, "fidelidad": "0.576599", "err_rel": "0.36"},
         
-       
-        {"log": "resultado_direct_alpha1.0_J7.0.log", "E_exact": -48.362404, "fidelidad": "0.963167"},
-        {"log": "resultado_metropolis_alpha1.0_J7.0.log", "E_exact": -48.362404, "fidelidad": "0.814542"},
+        {"log": "resultado_direct_alpha1.0_J7.0.log", "E_exact": -48.362404, "fidelidad": "0.963167", "err_rel": "0.07"},
+        {"log": "resultado_metropolis_alpha1.0_J7.0.log", "E_exact": -48.362404, "fidelidad": "0.945039", "err_rel": "0.58"},
         
-        {"log": "resultado_direct_alpha2.5_J2.75.log", "E_exact": -24.859957, "fidelidad": "0.962598"},
-        {"log": "resultado_metropolis_alpha2.5_J2.75.log", "E_exact": -24.859957, "fidelidad": "0.926270"},
+        {"log": "resultado_direct_alpha2.5_J2.75.log", "E_exact": -24.859957, "fidelidad": "0.962598", "err_rel": "0.05"},
+        {"log": "resultado_metropolis_alpha2.5_J2.75.log", "E_exact": -24.859957, "fidelidad": "0.831200", "err_rel": "1.22"},
         
-        {"log": "resultado_direct_alpha6.0_J7.0.log", "E_exact": -69.350307, "fidelidad": "0.997883"},
-        {"log": "resultado_metropolis_alpha6.0_J7.0.log", "E_exact": -69.350307, "fidelidad": "0.929034"}
+        {"log": "resultado_direct_alpha6.0_J7.0.log", "E_exact": -69.350307, "fidelidad": "0.997883", "err_rel": "0.03"},
+        {"log": "resultado_metropolis_alpha6.0_J7.0.log", "E_exact": -69.350307, "fidelidad": "0.706565", "err_rel": "0.13"}
     ]
 
     for exp in experimentos:
@@ -141,7 +140,8 @@ if __name__ == "__main__":
                 log_path=ruta_completa, 
                 output_filename=png_name, 
                 exact_energy=exp["E_exact"],
-                fidelidad_str=exp["fidelidad"]
+                fidelidad_str=exp["fidelidad"],
+                err_rel_str=exp["err_rel"]  # <-- Pasamos el error exacto
             )
         else:
             print(f"  [AVISO] Archivo no encontrado: {exp['log']}. Saltando....")
