@@ -16,7 +16,7 @@ if parent_dir not in sys.path:
     sys.path.append(parent_dir)
 
 from physics.hamiltonian import get_Hamiltonian
-from models.vitB import ARSpinViT_Causal
+from models.ARViT import ARSpinViT_Causal
 from physics.utils import BestIterKeeper, plot_markov_autocorrelation 
 
 # ==============================================================================

@@ -13,7 +13,7 @@ parent_dir = os.path.dirname(current_dir)
 sys.path.append(parent_dir)
 
 from physics.hamiltonian import get_Hamiltonian
-from models.vitB import ARSpinViT_Causal
+from models.ARViT import ARSpinViT_Causal
 from physics.utils import BestIterKeeper
 
 def run_direct_sampling_6_points(N=10):
