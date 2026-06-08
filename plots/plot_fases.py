@@ -92,23 +92,14 @@ def plot_convergencia(log_path, output_filename, exact_energy, fidelidad_str, er
 if __name__ == "__main__":
     print("\n--- GENERANDO GRÁFICAS Y AUDITANDO ERROR RELATIVO ---\n")
     
-    # Actualizado a la ruta exacta de Google Drive de tu Colab
-    drive_dir = "/content/drive/MyDrive/TFG_ARViT/Fase_ J_alpha"
+    # Forzamos a que lea la carpeta actual (donde están el script y los logs)
+    logs_dir = "."
+    out_dir = "."
     
-    if os.path.exists(drive_dir):
-        logs_dir = drive_dir
-        out_dir = drive_dir
-    else:
-        current_dir = os.path.dirname(os.path.abspath(__file__)) if '__file__' in globals() else os.getcwd()
-        logs_dir = os.path.abspath(os.path.join(current_dir, "..", "TFG_ARViT"))
-        out_dir = current_dir
+    print(f"[*] Buscando logs en: {os.path.abspath(logs_dir)}")
+    print(f"[*] Guardando gráficas en: {os.path.abspath(out_dir)}\n")
 
-    os.makedirs(out_dir, exist_ok=True)
-    
-    print(f"[*] Buscando logs en: {logs_dir}")
-    print(f"[*] Guardando gráficas en: {out_dir}\n")
-
-    # Experimentos actualizados con los valores EXACTOS de la tabla definitiva
+    # (Aquí va la lista de la variable "experimentos" exactamente igual que la tenías)
     experimentos = [
         {"log": "resultado_direct_alpha1.0_J-2.0.log", "E_exact": -44.239541, "fidelidad": "0.993972", "err_rel": "0.04"},
         {"log": "resultado_metropolis_alpha1.0_J-2.0.log", "E_exact": -44.239541, "fidelidad": "0.998112", "err_rel": "0.12"},
@@ -141,7 +132,7 @@ if __name__ == "__main__":
                 output_filename=png_name, 
                 exact_energy=exp["E_exact"],
                 fidelidad_str=exp["fidelidad"],
-                err_rel_str=exp["err_rel"]  # <-- Pasamos el error exacto
+                err_rel_str=exp["err_rel"]
             )
         else:
             print(f"  [AVISO] Archivo no encontrado: {exp['log']}. Saltando....")
