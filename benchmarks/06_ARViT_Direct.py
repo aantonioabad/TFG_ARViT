@@ -69,8 +69,7 @@ def run_arvit_direct():
     print("Calculando métricas finales...")
     E_stat = vstate.expect(H)
     E_mean = E_stat.mean.real
-    E_var = E_stat.variance.real
-    tau_c = getattr(E_stat, "tau_corr", 0.0) 
+    E_var = E_stat.variance.real 
     pearson_dev = jnp.sqrt(E_var) / abs(E_mean)
 
     H_sparse = H.to_sparse()
@@ -87,7 +86,6 @@ def run_arvit_direct():
     print(f"Error Relativo    : {abs((E_mean - E_exact)/E_exact):.2%}")
     print(f"Desviacion Pearson: {pearson_dev:.6f}")
     print(f"Fidelidad         : {overlap:.6f}")
-    print(f"Autocorrelación τ : {tau_c:.4f}")
     print(f"Tiempo puro       : {end_time - start_time:.2f} s")
 
     benchmark_title = "ARViT Direct"
