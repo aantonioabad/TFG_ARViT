@@ -39,7 +39,7 @@ def run_direct_sampling_6_points(N=10):
     for alpha, J in experimentos:
         print(f"\n>>> TRABAJANDO EN: J={J} | alpha={alpha} <<<")
         
-        # 1. Hamiltoniano y Energía Exacta (ED)
+        
         hi = nk.hilbert.Spin(s=1/2, N=N)
         H = get_Hamiltonian(N=N, J=J, alpha=alpha, hilbert=hi)
         H_sparse = H.to_sparse()
@@ -47,7 +47,7 @@ def run_direct_sampling_6_points(N=10):
         E_exact = float(evals[0])
         print(f"  [+] Energía Exacta (E0): {E_exact:.6f}")
 
-        # 2. Configuración del Modelo
+        
         model = ARSpinViT_Causal(
             hilbert=hi,
             embedding_d=8,
@@ -56,7 +56,7 @@ def run_direct_sampling_6_points(N=10):
             n_ffn_layers=1
         )
         
-        # Muestreo Directo
+        
         sampler = nk.sampler.ARDirectSampler(hi)
         vstate = nk.vqs.MCState(sampler, model, n_samples=2048, seed=42)
         optimizer = optax.adam(learning_rate=0.001)
@@ -66,25 +66,23 @@ def run_direct_sampling_6_points(N=10):
         base_log_name = os.path.join(drive_dir, f"resultado_direct_alpha{alpha}_J{J}")
         log = nk.logging.JsonLog(base_log_name, save_params=False)
 
-        # 3. Calentamiento de JAX (1 iteración)
+  
         print(f"  [+] Calentando compilador JAX (1 época)...")
         gs.run(n_iter=1, out=log, callback=keeper.update)
         jax.block_until_ready(vstate.variables)
 
-        # 4. Entrenamiento Real (499 iteraciones) cronometrado
+    
         print(f"  [+] Entrenando las 499 épocas restantes...")
         start_time = time.time()
         gs.run(n_iter=499, out=log, show_progress=True, callback=keeper.update)
         jax.block_until_ready(vstate.variables)
         
-        # Calcular tiempo total equivalente a 500 épocas (sin ruido de compilación)
         time_499 = time.time() - start_time
         exec_time_500 = time_499 * (500 / 499)
-        
-        # 5. Cargar el mejor estado encontrado
+  
         vstate.parameters = keeper.best_state.parameters
         
-        # 6. Cálculo de Métricas Físicas
+    
         print("Calculando métricas finales...")
         E_stat = vstate.expect(H)
         E_mean = E_stat.mean.real

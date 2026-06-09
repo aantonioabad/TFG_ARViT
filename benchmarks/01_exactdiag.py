@@ -22,8 +22,6 @@ def run_exact():
     alpha = 3.0
     hi = nk.hilbert.Spin(s=0.5, N=N)
     H = get_Hamiltonian(N, J, alpha, hi)
-    
-    # 2. Diagonalización Exacta (Lanczos)
     print(f"Calculando suelo exacto para N={N}...")
     start_time = time.time()
     

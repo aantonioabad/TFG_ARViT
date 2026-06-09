@@ -4,7 +4,7 @@ import time
 import json
 import jax
 import jax.numpy as jnp
-import numpy as np  # <-- Añadido para la autocorrelación
+import numpy as np  
 import netket as nk
 import optax
 import scipy.sparse.linalg
@@ -15,11 +15,11 @@ sys.path.append(parent_dir)
 
 from physics.hamiltonian import get_Hamiltonian
 from models.ARViT import ARSpinViT_Causal
-# Asumo que plot_markov_autocorrelation está en utils, si no, ajusta este import:
+
 from physics.utils import BestIterKeeper, plot_markov_autocorrelation 
 
 def run_direct_sampling_6_points(N=10):
-    # Ruta principal en tu Drive (sin subcarpetas)
+   
     drive_dir = "/content/drive/MyDrive/TFG_ARViT/Fase_ J_alpha/"
     os.makedirs(drive_dir, exist_ok=True)
 
@@ -34,14 +34,11 @@ def run_direct_sampling_6_points(N=10):
 
     print(f"\n{'='*80}")
     print(f"🚀 INICIANDO BENCHMARK: Metropolis SAMPLING + MÉTRICAS + AUTOCORRELACIÓN")
-    print(f"💾 Destino: {drive_dir}")
 
     print(f"{'='*80}\n")
 
     for alpha, J in experimentos:
         print(f"\n>>> TRABAJANDO EN: J={J} | alpha={alpha} <<<")
-        
-        # 1. Hamiltoniano y Energía Exacta (ED)
         hi = nk.hilbert.Spin(s=1/2, N=N)
         H = get_Hamiltonian(N=N, J=J, alpha=alpha, hilbert=hi)
         H_sparse = H.to_sparse()
@@ -49,7 +46,6 @@ def run_direct_sampling_6_points(N=10):
         E_exact = float(evals[0])
         print(f"  [+] Energía Exacta (E0): {E_exact:.6f}")
 
-        # 2. Configuración del Modelo
         model = ARSpinViT_Causal(
             hilbert=hi,
             embedding_d=8,
@@ -72,25 +68,20 @@ def run_direct_sampling_6_points(N=10):
         base_log_name = os.path.join(drive_dir, f"resultado_direct_alpha{alpha}_J{J}")
         log = nk.logging.JsonLog(base_log_name, save_params=False)
 
-        # 3. Calentamiento de JAX (1 iteración)
         print(f"  [+] Calentando compilador JAX (1 época)...")
         gs.run(n_iter=1, out=log, callback=keeper.update)
         jax.block_until_ready(vstate.variables)
 
-        # 4. Entrenamiento Real (499 iteraciones) cronometrado
         print(f"  [+] Entrenando las 499 épocas restantes...")
         start_time = time.time()
         gs.run(n_iter=499, out=log, show_progress=True, callback=keeper.update)
         jax.block_until_ready(vstate.variables)
         
-        # Calcular tiempo total equivalente a 500 épocas (sin ruido de compilación)
         time_499 = time.time() - start_time
         exec_time_500 = time_499 * (500 / 499)
         
-        # 5. Cargar el mejor estado encontrado
         vstate.parameters = keeper.best_state.parameters
         
-        # 6. Cálculo de Métricas Físicas
         print("  [+] Calculando métricas finales y autocorrelación...")
         E_stat = vstate.expect(H)
         E_mean = E_stat.mean.real
@@ -101,11 +92,6 @@ def run_direct_sampling_6_points(N=10):
         psi_vmc = vstate.to_array(normalize=True)
         overlap = float(jnp.abs(jnp.vdot(psi_exact, psi_vmc))**2)
 
-        # ------------------------------------------------------------------
-        # 7. BLOQUE DE AUTOCORRELACIÓN (Integrado y adaptado a Muestreo Directo)
-        # ------------------------------------------------------------------
-        # Extraemos los estimadores locales. Hacemos .flatten() por si NetKet 
-        # devuelve shape (n_chains, n_samples) para evitar errores de índice.
         E_loc_raw = np.array(vstate.local_estimators(H).real)
         E_loc = E_loc_raw[0] if E_loc_raw.ndim > 1 else E_loc_raw
 
@@ -125,7 +111,7 @@ def run_direct_sampling_6_points(N=10):
                 
         print(f"  [+] Pasos hasta decorrelación del 10%: {t_10_percent}")
 
-        # Títulos y nombres de archivo adaptados a Muestreo Directo
+        
         benchmark_title = f"ARViT Directo (J={J}, alpha={alpha})"
         plot_filename = os.path.join(drive_dir, f"autocorr_direct_alpha{alpha}_J{J}.png")
         
@@ -139,7 +125,6 @@ def run_direct_sampling_6_points(N=10):
         print(f"  [√] Gráfica de autocorrelación guardada en: {os.path.basename(plot_filename)}")
         # ------------------------------------------------------------------
 
-        # 8. Impresión de Resultados
         print("\n>>> RESULTADOS FINALES:")
         print(f"      - Energia VMC       : {E_mean:.6f}")
         print(f"      - Energia Exacta    : {E_exact:.6f}")
