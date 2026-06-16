@@ -2,7 +2,7 @@ Código elaborado para el Trabajo de fin de grado: ROMPIENDO LAS CADENAS (DE MAR
 
 Universidad de Zaragoza- Facultad de Ciencias
 
-Departamento de Física de la materia condensada
+Departamento de Física de la Materia Condensada
 
 Antonio Abad Arenas
 
