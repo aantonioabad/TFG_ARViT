@@ -71,6 +71,8 @@ def run_arvit_direct():
     E_mean = E_stat.mean.real
     E_var = E_stat.variance.real 
     pearson_dev = jnp.sqrt(E_var) / abs(E_mean)
+    # N es el número total de espines de tu sistema
+    v_score = N * E_var / (E_mean ** 2) 
 
     H_sparse = H.to_sparse()
     evals, evecs = scipy.sparse.linalg.eigsh(H_sparse, k=1, which="SA")
@@ -87,6 +89,7 @@ def run_arvit_direct():
     print(f"Desviacion Pearson: {pearson_dev:.6f}")
     print(f"Fidelidad         : {overlap:.6f}")
     print(f"Tiempo puro       : {end_time - start_time:.2f} s")
+    print(f"V-score      : {v_score:.6f}")
 
     benchmark_title = "ARViT Direct"
     plot_markov_autocorrelation(
