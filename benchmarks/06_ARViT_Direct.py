@@ -40,7 +40,6 @@ def run_arvit_direct():
         n_blocks=2,
         n_ffn_layers=1
     )
-
     sampler = nk.sampler.ARDirectSampler(hi)
     vstate = nk.vqs.MCState(sampler, model, n_samples=2048, seed=42)
     
