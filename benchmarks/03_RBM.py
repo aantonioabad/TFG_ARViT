@@ -75,6 +75,7 @@ def run_rbm():
 
     psi_vmc = vstate.to_array(normalize=True)
     overlap = float(jnp.abs(jnp.vdot(psi_exact, psi_vmc))**2)
+    v_score = N * E_var / (E_mean ** 2) 
     print("Calculando el paso exacto de caída al 10%...")
     
     
@@ -99,6 +100,7 @@ def run_rbm():
     print(f"Energia Exacta    : {E_exact:.6f}")
     print(f"Error Relativo    : {abs((E_mean - E_exact)/E_exact):.2%}")
     print(f"Desviacion Pearson: {pearson_dev:.6f}")
+    print(f"V-score      : {v_score:.6f}")
     print(f"Fidelidad         : {overlap:.6f}")
     print(f"Autocorrelación τ : {tau_c:.4f}")
     print(f"Tiempo puro       : {end_time - start_time:.2f} s")

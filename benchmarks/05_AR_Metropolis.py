@@ -72,6 +72,7 @@ def run_arnn_metropolis():
     E_var = E_stat.variance.real
     tau_c = getattr(E_stat, "tau_corr", 0.0)  
     pearson_dev = jnp.sqrt(E_var) / abs(E_mean)
+    v_score = N * E_var / (E_mean ** 2) 
 
     H_sparse = H.to_sparse()
     evals, evecs = scipy.sparse.linalg.eigsh(H_sparse, k=1, which="SA")
@@ -102,6 +103,7 @@ def run_arnn_metropolis():
     print(f"Energia Exacta    : {E_exact:.6f}")
     print(f"Error Relativo    : {abs((E_mean - E_exact)/E_exact):.2%}")
     print(f"Desviacion Pearson: {pearson_dev:.6f}")
+    print(f"V-score      : {v_score:.6f}")
     print(f"Fidelidad         : {overlap:.6f}")
     print(f"Autocorrelación τ : {tau_c:.4f}") 
     print(f"Tiempo puro       : {end_time - start_time:.2f} s")

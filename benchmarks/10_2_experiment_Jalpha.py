@@ -87,6 +87,7 @@ def run_direct_sampling_6_points(N=10):
         E_mean = E_stat.mean.real
         E_var = E_stat.variance.real 
         pearson_dev = float(jnp.sqrt(E_var) / abs(E_mean))
+        v_score = N * E_var / (E_mean ** 2) 
 
         psi_exact = evecs[:, 0]
         psi_vmc = vstate.to_array(normalize=True)
@@ -130,6 +131,7 @@ def run_direct_sampling_6_points(N=10):
         print(f"      - Energia Exacta    : {E_exact:.6f}")
         print(f"      - Error Relativo    : {abs((E_mean - E_exact)/E_exact):.8%}")
         print(f"      - Desviacion Pearson: {pearson_dev:.6f}")
+        print(f"      - V-score           : {v_score:.6f}")
         print(f"      - Fidelidad         : {overlap:.6f}")
         print(f"      - Tau (10%)         : {t_10_percent}")
         print(f"      - Tiempo            : {exec_time_500:.1f} s")

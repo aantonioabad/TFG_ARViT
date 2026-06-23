@@ -123,6 +123,7 @@ def run_arvit_direct_2d():
         psi_vmc_norm = psi_vmc / np.linalg.norm(psi_vmc)
         psi_exact_norm = psi_exact / np.linalg.norm(psi_exact)
         fidelity = abs(np.vdot(psi_vmc_norm, psi_exact_norm))**2
+    
 
         prob_vmc = np.abs(psi_vmc_norm)**2
         prob_exact = np.abs(psi_exact_norm)**2
