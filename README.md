@@ -6,3 +6,9 @@ Departamento de Física de la Materia Condensada
 
 Antonio Abad Arenas
 
+Dirigido por:
+
+Jesús Carrete Montaña
+
+David Zueco Láinez
+
